@@ -1,248 +1,599 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <title>World Clock</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root {
-      --bg: #0f172a;
-      --card: #111827;
-      --text: #e5e7eb;
-      --muted: #9ca3af;
-      --accent: #38bdf8;
-      --good: #10b981;
-    }
-    html, body {
-      margin: 0; padding: 0; background: var(--bg); color: var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-    }
-    header {
-      padding: 20px;
-      text-align: center;
-    }
-    header h1 { margin: 0 0 8px; font-size: 1.8rem; }
-    header p { margin: 0; color: var(--muted); }
-    .container {
-      max-width: 980px; margin: 0 auto; padding: 20px;
-      display: grid; gap: 16px;
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px;
-    }
-    .card {
-      background: var(--card);
-      border: 1px solid #1f2937;
-      border-radius: 12px;
-      padding: 16px;
-    }
-    .city {
-      display: flex; align-items: baseline; justify-content: space-between;
-    }
-    .city h2 {
-      margin: 0; font-size: 1.1rem; font-weight: 600;
-    }
-    .city .tz {
-      margin-left: 8px; color: var(--muted); font-size: 0.9rem;
-    }
-    .time {
-      margin-top: 8px; font-size: 2rem; font-variant-numeric: tabular-nums;
-      letter-spacing: 0.02em;
-    }
-    .date {
-      margin-top: 4px; color: var(--muted); font-size: 0.95rem;
-    }
-    .footer {
-      margin-top: 8px; color: var(--muted); font-size: 0.85rem;
-    }
-    .controls {
-      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
-    }
-    .controls input, .controls select, .controls button {
-      background: #0b1220; border: 1px solid #1f2937; color: var(--text);
-      border-radius: 8px; padding: 10px 12px; font-size: 0.95rem;
-    }
-    .controls button { cursor: pointer; }
-    .hint { color: var(--muted); font-size: 0.85rem; margin-left: 4px; }
-    .local {
-      color: var(--good); font-size: 0.9rem; margin-left: 6px;
-    }
-    .accent { color: var(--accent); }
-    .small { font-size: 0.85rem; }
-    .hidden { display: none; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拓展</title>
+    <style>
+        * {margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif;}
+        body {background: #f9fafb; color: #222; padding: 15px;}
+        .container {max-width: 1200px; margin: 0 auto;}
+        :root {
+            --语文: #ff7878; --数学: #64b5f6; --英语: #9c27b0;
+            --物理: #ffb74d; --生物: #4caf50; --地理: #26c6da;
+            --历史: #ef5350; --道法: #ffa726; --bg-card: #fff;
+            --border: #eee; --text-light: #666;
+        }
+        .btn {
+            padding: 8px 16px; border: none; border-radius: 4px;
+            font-size: 14px; cursor: pointer; background: #222; color: #fff;
+            transition: background .3s;
+        }
+        .btn:hover {background: #444;}
+        .btn-edit {background: #2196f3;}
+        .btn-save {background: #4caf50;}
+        .btn-export {background: #4caf50; margin-left: 8px;}
+        .btn-op {
+            width: 22px; height: 22px; padding: 0; border-radius: 4px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; display: none;
+        }
+        .edit-mode .btn-op {display: flex;}
+        .btn-add-task {background: #4caf50;}
+        .btn-del-task {background: #f44336; margin-left: 6px;}
+        .page-title {
+            font-size: 24px; margin-bottom: 20px; text-align: center;
+            font-weight: 700; padding-bottom: 8px; position: relative;
+        }
+        .page-title::after {
+            content: ''; position: absolute; bottom: 0; left: 50%;
+            transform: translateX(-50%); width: 40px; height: 2px; background: #222;
+        }
+        .card {
+            background: var(--bg-card); border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding: 20px; margin-bottom: 20px;
+        }
+        .summary-header {
+            font-size: 16px; font-weight: 600; margin-bottom: 12px;
+            display: flex; align-items: center;
+        }
+        .summary-date {color: var(--text-light); font-size: 14px; margin-left: auto;}
+        .summary-content {
+            padding: 15px; background: #f8f9fa; border-radius: 6px;
+            margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px;
+            max-height: 120px; overflow-y: auto;
+        }
+        .summary-task {
+            padding: 6px 12px; background: #fff; border-radius: 20px;
+            font-size: 14px; border: 1px solid var(--border); display: flex; gap: 6px;
+        }
+        .summary-task-tag {width: 8px; height: 8px; border-radius: 50%;}
+        .table-scroll {overflow-x: auto; margin-bottom: 15px;}
+        .hundred-days-table {
+            width: 100%; border-collapse: collapse; min-width: 1000px;
+        }
+        .hundred-days-table th, .hundred-days-table td {
+            border: 1px solid var(--border); padding: 8px; text-align: center; font-size: 14px;
+        }
+        .hundred-days-table th {
+            background: #f8f9fa; font-weight: 600; position: sticky; left: 0; z-index: 1;
+        }
+        .hundred-days-table th:first-child, .hundred-days-table td:first-child {
+            left: 0; z-index: 3; background: #f5f5f5; min-width: 150px; text-align: left;
+        }
+        .hundred-days-table th.today-col, .hundred-days-table td.today-col {
+            background: #fff8e1; font-weight: bold; position: sticky; right: 0; z-index: 2;
+        }
+        .hundred-days-table th.today-col {background: #fff3e0;}
+        .task-cell {width: 60px; cursor: not-allowed; background: #fafafa;}
+        .task-cell.checked {background: #e8f5e9; color: #2e7d32; font-weight: bold;}
+        .subject-label {
+            padding: 2px 6px; border-radius: 3px; color: #fff; font-size: 12px;
+            margin-right: 5px; display: inline-block;
+        }
+        .check-scroll {
+            max-height: calc(100vh - 450px); overflow-y: auto;
+            scrollbar-width: thin;
+        }
+        .subject-group {margin-bottom: 15px;}
+        .subject-header {
+            font-size: 16px; padding: 10px 15px; border-radius: 6px 6px 0 0;
+            color: #fff; font-weight: 600; display: flex; justify-content: space-between;
+            align-items: center;
+        }
+        .task-list {
+            border: 1px solid var(--border); border-top: none;
+            border-radius: 0 0 6px 6px;
+        }
+        .task {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 15px; border-bottom: 1px solid var(--border);
+        }
+        .task:last-child {border-bottom: none;}
+        .task-ops {display: flex; align-items: center;}
+        .task-name {flex: 1; font-size: 14px; cursor: default;}
+        .task-input {
+            flex: 1; padding: 6px 10px; border: 1px solid #ddd;
+            border-radius: 4px; font-size: 14px; display: none; outline: none;
+        }
+        .task-check {
+            width: 22px; height: 22px; border: 2px solid #222;
+            border-radius: 4px; cursor: pointer; position: relative;
+        }
+        .task-check.checked {background: #222; color: #fff;}
+        .task-check.checked::after {
+            content: '✓'; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); font-size: 14px;
+        }
+        .pagination {display: flex; justify-content: center; gap: 8px; margin: 20px 0;}
+        .page-btn {
+            padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px;
+            background: #fff; color: #333; cursor: pointer;
+        }
+        .page-btn.active {background: #222; color: #fff; border-color: #222;}
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: flex; align-items: center;
+            justify-content: center; z-index: 100; display: none;
+        }
+        .modal-content {
+            background: #fff; padding: 20px; border-radius: 8px;
+            width: 90%; max-width: 400px;
+        }
+        .modal-title {font-size: 16px; font-weight: 600; margin-bottom: 15px;}
+        .modal-input {
+            width: 100%; padding: 8px 12px; border: 1px solid #ddd;
+            border-radius: 4px; margin-bottom: 15px; font-size: 14px;
+        }
+        .modal-btns {display: flex; gap: 10px; justify-content: flex-end;}
+        @media (max-width: 500px) {
+            .btn {padding: 6px 12px; font-size: 13px;}
+            .hundred-days-table th, .hundred-days-table td {padding: 6px; font-size: 12px;}
+            .hundred-days-table th:first-child, .hundred-days-table td:first-child {min-width: 120px;}
+            .task-cell {width: 50px;}
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <h1>World clock</h1>
-    <p>Live local times for major cities and your chosen time zones</p>
-  </header>
-
-  <div class="container">
-    <div class="card">
-      <div class="controls">
-        <input id="cityName" type="text" placeholder="City name (e.g., Espoo)" aria-label="City name" />
-        <input id="tzId" type="text" placeholder="IANA time zone (e.g., Europe/Helsinki)" aria-label="Time zone ID" />
-        <button id="addBtn">Add time zone</button>
-        <span class="hint">Tip: Use valid IANA IDs like America/New_York, Asia/Tokyo, Europe/London.</span>
-      </div>
-      <div class="footer small">
-        Current local time detection uses the browser’s time zone. Add or remove entries freely.
-      </div>
+    <div class="container">
+        <h2 class="page-title">中考百天打卡</h2>
+        <div class="pagination">
+            <button class="page-btn active" data-page="1">首页</button>
+            <button class="page-btn" data-page="2">打卡表</button>
+            <button class="page-btn" data-page="3">任务管理</button>
+        </div>
+        <div class="page page-1 active">
+            <div class="card">
+                <div class="summary-header">
+                    今日打卡汇总
+                    <span class="summary-date" id="todayDate"></span>
+                </div>
+                <div class="summary-content" id="summaryContent">
+                    <span class="text-light">今日未完成任何打卡任务</span>
+                </div>
+                <div style="text-align: center;">
+                    <button class="btn" id="exportTodayBtn">导出今日记录</button>
+                    <button class="btn btn-export" id="exportTableBtn">导出打卡表格</button>
+                </div>
+            </div>
+            <div class="card">
+                <h3 style="text-align: center; margin-bottom: 15px; font-size: 16px;">今日任务打卡</h3>
+                <div class="check-scroll" id="todayTaskContainer">
+                    <div class="subject-group">
+                        <div class="subject-header" style="background: var(--语文);">
+                            <div><span>语文</span><span id="语文Progress">0/5</span></div>
+                        </div>
+                        <div class="task-list" id="语文TodayList"></div>
+                    </div>
+                    <div class="subject-group">
+                        <div class="subject-header" style="background: var(--数学);">
+                            <div><span>数学</span><span id="数学Progress">0/6</span></div>
+                        </div>
+                        <div class="task-list" id="数学TodayList"></div>
+                    </div>
+                    <div class="subject-group">
+                        <div class="subject-header" style="background: var(--英语);">
+                            <div><span>英语</span><span id="英语Progress">0/6</span></div>
+                        </div>
+                        <div class="task-list" id="英语TodayList"></div>
+                    </div>
+                    <div class="subject-group">
+                        <div class="subject-header" style="background: var(--物理);">
+                            <div><span>物理</span><span id="物理Progress">0/1</span></div>
+                        </div>
+                        <div class="task-list" id="物理TodayList"></div>
+                    </div>
+                    <div class="subject-group">
+                        <div class="subject-header" style="background: var(--生物);">
+                            <div><span>生物</span><span id="生物Progress">0/5</span></div>
+                        </div>
+                        <div class="task-list" id="生物TodayList"></div>
+                    </div>
+                    <div class="subject-group">
+                        <div class="subject-header" style="background: var(--地理);">
+                            <div><span>地理</span><span id="地理Progress">0/3</span></div>
+                        </div>
+                        <div class="task-list" id="地理TodayList"></div>
+                    </div>
+                    <div class="subject-group">
+                        <div class="subject-header" style="background: var(--历史);">
+                            <div><span>历史</span><span id="历史Progress">0/4</span></div>
+                        </div>
+                        <div class="task-list" id="历史TodayList"></div>
+                    </div>
+                    <div class="subject-group">
+                        <div class="subject-header" style="background: var(--道法);">
+                            <div><span>道法</span><span id="道法Progress">0/1</span></div>
+                        </div>
+                        <div class="task-list" id="道法TodayList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="page page-2" style="display: none;">
+            <div class="card">
+                <h3 style="text-align: center; margin-bottom: 15px; font-size: 16px;">百天打卡追踪表</h3>
+                <div class="table-scroll" id="tableContainer">
+                    <table class="hundred-days-table">
+                        <thead><tr><th>任务名称</th></tr></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+                <div style="text-align: center;">
+                    <button class="btn btn-export" id="exportFullTableBtn">导出完整打卡表</button>
+                </div>
+            </div>
+        </div>
+        <div class="page page-3" style="display: none;">
+            <div class="card">
+                <h3 style="text-align: center; margin-bottom: 15px; font-size: 16px;">任务管理</h3>
+                <div class="check-scroll edit-mode" id="taskManageContainer">
+                    <div class="subject-group">
+                        <div class="subject-header" style="background: var(--语文);">
+                            <div><span>语文</span></div>
+                            <span id="语文Total">共5项</span>
+                        </div>
+                        <div class="task-list" id="语文ManageList"></div>
+                    </div>
+                    <div class="subject-group">
+                        <div class="subject-header" style="background: var(--数学);">
+                            <div><span>数学</span></div>
+                            <span id="数学Total">共6项</span>
+                        </div>
+                        <div class="task-list" id="数学ManageList"></div>
+                    </div>
+                    <div class="subject-group">
+                        <div class="subject-header" style="background: var(--英语);">
+                            <div><span>英语</span></div>
+                            <span id="英语Total">共6项</span>
+                        </div>
+                        <div class="task-list" id="英语ManageList"></div>
+                    </div>
+                    <div class="subject-group">
+                        <div class="subject-header" style="background: var(--物理);">
+                            <div><span>物理</span></div>
+                            <span id="物理Total">共1项</span>
+                        </div>
+                        <div class="task-list" id="物理ManageList"></div>
+                    </div>
+                    <div class="subject-group">
+                        <div class="subject-header" style="background: var(--生物);">
+                            <div><span>生物</span></div>
+                            <span id="生物Total">共5项</span>
+                        </div>
+                        <div class="task-list" id="生物ManageList"></div>
+                    </div>
+                    <div class="subject-group">
+                        <div class="subject-header" style="background: var(--地理);">
+                            <div><span>地理</span></div>
+                            <span id="地理Total">共3项</span>
+                        </div>
+                        <div class="task-list" id="地理ManageList"></div>
+                    </div>
+                    <div class="subject-group">
+                        <div class="subject-header" style="background: var(--历史);">
+                            <div><span>历史</span></div>
+                            <span id="历史Total">共4项</span>
+                        </div>
+                        <div class="task-list" id="历史ManageList"></div>
+                    </div>
+                    <div class="subject-group">
+                        <div class="subject-header" style="background: var(--道法);">
+                            <div><span>道法</span></div>
+                            <span id="道法Total">共1项</span>
+                        </div>
+                        <div class="task-list" id="道法ManageList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <div id="grid" class="grid"></div>
-
-    <div class="card">
-      <div class="footer small">
-        Examples: Europe/Helsinki • Europe/London • America/New_York • Asia/Tokyo • Asia/Shanghai • Australia/Sydney • UTC
-      </div>
+    <div class="modal" id="addTaskModal">
+        <div class="modal-content">
+            <div class="modal-title">添加新任务</div>
+            <input type="text" class="modal-input" id="newTaskInput" placeholder="请输入任务名称">
+            <div class="modal-btns">
+                <button class="btn" id="cancelAddBtn">取消</button>
+                <button class="btn btn-save" id="confirmAddBtn">确认</button>
+            </div>
+        </div>
     </div>
-  </div>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script>
+        const STORAGE_KEY = 'examCheckInData';
+        const initData = {
+            subjectTasks: {
+                语文: ['文言文','现代文阅读','组合训练基础','组合训练阅读','组合训练专项'],
+                数学: ['天利38套培优卷','实验班提优卷','五星学霸','实验班训练','同步计算题','尖子生每日一题'],
+                英语: ['阅读表达','实验班提优卷','词汇书','专项练习','作文','组合训练'],
+                物理: ['物理必刷题'],
+                生物: ['生物必刷题','生物五三','周册小卷','生物大卷','综合题'],
+                地理: ['地理必刷题','地理大卷','综合题'],
+                历史: ['历史必刷题','历史实验班','周册小卷','历史大卷'],
+                道法: ['道法大卷']
+            },
+            dailyRecords: [],
+            hundredDays: {}
+        };
+        let data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || initData;
+        const today = new Date().toISOString().split('T')[0];
+        let currentSubject = '';
+        document.getElementById('todayDate').textContent = formatDate(today);
 
-  <script>
-    // Predefined cities and time zones
-    const presets = [
-      { city: "Espoo", tz: "Europe/Helsinki" },
-      { city: "London", tz: "Europe/London" },
-      { city: "New York", tz: "America/New_York" },
-      { city: "San Francisco", tz: "America/Los_Angeles" },
-      { city: "Tokyo", tz: "Asia/Tokyo" },
-      { city: "Shanghai", tz: "Asia/Shanghai" },
-      { city: "Sydney", tz: "Australia/Sydney" },
-      { city: "UTC", tz: "UTC" }
-    ];
-
-    // Try to detect local zone
-    const localTZ = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-    const localCity = "Local";
-
-    // State
-    let clocks = [];
-
-    // Helpers
-    function fmtTime(d, tz) {
-      return new Intl.DateTimeFormat("en-GB", {
-        timeZone: tz,
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false
-      }).format(d);
-    }
-    function fmtDate(d, tz) {
-      return new Intl.DateTimeFormat("en-GB", {
-        timeZone: tz,
-        weekday: "short",
-        year: "numeric",
-        month: "short",
-        day: "2-digit"
-      }).format(d);
-    }
-    function safeTZ(tz) {
-      try {
-        // Probe formatting to validate tz ID
-        new Intl.DateTimeFormat("en-US", { timeZone: tz }).format(new Date());
-        return true;
-      } catch {
-        return false;
-      }
-    }
-
-    function createCard({ city, tz, isLocal }) {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.dataset.tz = tz;
-
-      const header = document.createElement("div");
-      header.className = "city";
-      const h2 = document.createElement("h2");
-      h2.textContent = city;
-      const tzSpan = document.createElement("span");
-      tzSpan.className = "tz";
-      tzSpan.textContent = tz;
-      header.appendChild(h2);
-      header.appendChild(tzSpan);
-
-      if (isLocal) {
-        const localSpan = document.createElement("span");
-        localSpan.className = "local";
-        localSpan.textContent = "Your local time";
-        header.appendChild(localSpan);
-      }
-
-      const timeEl = document.createElement("div");
-      timeEl.className = "time";
-      timeEl.textContent = "--:--:--";
-
-      const dateEl = document.createElement("div");
-      dateEl.className = "date";
-      dateEl.textContent = "";
-
-      const controls = document.createElement("div");
-      controls.style.marginTop = "10px";
-      const removeBtn = document.createElement("button");
-      removeBtn.textContent = "Remove";
-      removeBtn.onclick = () => {
-        card.remove();
-        clocks = clocks.filter(c => c.card !== card);
-      };
-      controls.appendChild(removeBtn);
-
-      card.appendChild(header);
-      card.appendChild(timeEl);
-      card.appendChild(dateEl);
-      card.appendChild(controls);
-
-      return { card, timeEl, dateEl };
-    }
-
-    function addClock(city, tz, isLocal = false) {
-      if (!safeTZ(tz)) {
-        alert(`Invalid time zone: ${tz}\nUse a valid IANA ID (e.g., Europe/Helsinki).`);
-        return;
-      }
-      const { card, timeEl, dateEl } = createCard({ city, tz, isLocal });
-      document.getElementById("grid").appendChild(card);
-      clocks.push({ card, timeEl, dateEl, tz });
-    }
-
-    function tick() {
-      const now = new Date();
-      clocks.forEach(({ timeEl, dateEl, tz }) => {
-        timeEl.textContent = fmtTime(now, tz);
-        dateEl.textContent = fmtDate(now, tz);
-      });
-    }
-
-    // Init
-    window.addEventListener("DOMContentLoaded", () => {
-      // Local first
-      addClock(localCity, localTZ, true);
-      // Presets
-      presets.forEach(p => addClock(p.city, p.tz));
-
-      // Add custom
-      const cityInput = document.getElementById("cityName");
-      const tzInput = document.getElementById("tzId");
-      document.getElementById("addBtn").addEventListener("click", () => {
-        const city = (cityInput.value || "").trim() || tzInput.value.trim() || "Custom";
-        const tz = (tzInput.value || "").trim();
-        if (!tz) {
-          alert("Please enter a valid IANA time zone (e.g., Europe/Helsinki).");
-          return;
+        function formatDate(d) {
+            const date = new Date(d);
+            return `${date.getFullYear()}年${date.getMonth()+1}月${date.getDate()}日`;
         }
-        addClock(city, tz);
-        cityInput.value = "";
-        tzInput.value = "";
-      });
-
-      // Start clock
-      tick();
-      setInterval(tick, 1000);
-    });
-  </script>
+        function generate100Days() {
+            const arr = [];
+            const start = new Date();
+            for(let i=0;i<100;i++){
+                const d = new Date(start);
+                d.setDate(start.getDate()+i);
+                arr.push(d.toISOString().split('T')[0]);
+            }
+            return arr;
+        }
+        let days100 = generate100Days();
+        function getAllTasks() {
+            const arr = [];
+            Object.entries(data.subjectTasks).forEach(([s,tasks])=>{
+                tasks.forEach(t=>arr.push({subject:s,task:t}));
+            });
+            return arr;
+        }
+        function initTodayTaskDom() {
+            Object.entries(data.subjectTasks).forEach(([s,tasks])=>{
+                const list = document.getElementById(`${s}TodayList`);
+                list.innerHTML='';
+                tasks.forEach(t=>{
+                    const div = document.createElement('div');
+                    div.className='task';
+                    div.innerHTML=`<span class="task-name">${t}</span><div class="task-check" data-subject="${s}" data-task="${t}"></div>`;
+                    list.appendChild(div);
+                });
+            });
+            bindTodayTaskCheck();
+            updateTodayTaskStatus();
+        }
+        function initManageTaskDom() {
+            Object.entries(data.subjectTasks).forEach(([s,tasks])=>{
+                const list = document.getElementById(`${s}ManageList`);
+                list.innerHTML='';
+                tasks.forEach(t=>{
+                    const div = document.createElement('div');
+                    div.className='task';
+                    div.innerHTML=`<div class="task-ops"><button class="btn btn-op btn-add-task" data-subject="${s}">+</button><button class="btn btn-op btn-del-task" data-subject="${s}" data-task="${t}">-</button></div><span class="task-name" data-subject="${s}" data-task="${t}">${t}</span>`;
+                    list.appendChild(div);
+                });
+                document.getElementById(`${s}Total`).textContent=`共${tasks.length}项`;
+            });
+            bindAddTaskBtn();
+            bindDelTaskBtn();
+        }
+        function bindTodayTaskCheck() {
+            document.querySelectorAll('.task-check').forEach(c=>{
+                c.onclick=()=>{
+                    c.classList.toggle('checked');
+                    saveToday();
+                };
+            });
+        }
+        function bindAddTaskBtn() {
+            document.querySelectorAll('.btn-add-task').forEach(btn=>{
+                btn.onclick=()=>{
+                    currentSubject = btn.dataset.subject;
+                    document.getElementById('newTaskInput').value='';
+                    document.getElementById('addTaskModal').style.display='flex';
+                    document.getElementById('newTaskInput').focus();
+                };
+            });
+            document.getElementById('cancelAddBtn').onclick=()=>{
+                document.getElementById('addTaskModal').style.display='none';
+            };
+            document.getElementById('confirmAddBtn').onclick=()=>{
+                addNewTask();
+            };
+            document.getElementById('newTaskInput').onkeydown=(e)=>{
+                if(e.key==='Enter')addNewTask();
+            };
+        }
+        function addNewTask() {
+            const taskName = document.getElementById('newTaskInput').value.trim();
+            if(!taskName)return;
+            data.subjectTasks[currentSubject].push(taskName);
+            saveData();
+            const list = document.getElementById(`${currentSubject}ManageList`);
+            const div = document.createElement('div');
+            div.className='task';
+            div.innerHTML=`<div class="task-ops"><button class="btn btn-op btn-add-task" data-subject="${currentSubject}">+</button><button class="btn btn-op btn-del-task" data-subject="${currentSubject}" data-task="${taskName}">-</button></div><span class="task-name" data-subject="${currentSubject}" data-task="${taskName}">${taskName}</span>`;
+            list.appendChild(div);
+            document.getElementById(`${currentSubject}Total`).textContent=`共${data.subjectTasks[currentSubject].length}项`;
+            bindAddTaskBtn();
+            bindDelTaskBtn();
+            initTodayTaskDom();
+            renderTable();
+            document.getElementById('addTaskModal').style.display='none';
+        }
+        function bindDelTaskBtn() {
+            document.querySelectorAll('.btn-del-task').forEach(btn=>{
+                btn.onclick=()=>{
+                    const s = btn.dataset.subject;
+                    const t = btn.dataset.task;
+                    const taskEl = btn.closest('.task');
+                    data.subjectTasks[s] = data.subjectTasks[s].filter(task=>task!==t);
+                    saveData();
+                    taskEl.remove();
+                    document.getElementById(`${s}Total`).textContent=`共${data.subjectTasks[s].length}项`;
+                    initTodayTaskDom();
+                    renderTable();
+                    saveToday();
+                };
+            });
+        }
+        function bindPagination() {
+            document.querySelectorAll('.page-btn').forEach(btn=>{
+                btn.onclick=()=>{
+                    const page = btn.dataset.page;
+                    document.querySelectorAll('.page-btn').forEach(b=>b.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.querySelectorAll('.page').forEach(p=>p.style.display='none');
+                    document.querySelector(`.page-${page}`).style.display='block';
+                    if(page==='2')renderTable();
+                };
+            });
+        }
+        function updateTodayTaskStatus() {
+            const todayRec = data.dailyRecords.find(item=>item.date===today)||{tasks:{}};
+            Object.entries(data.subjectTasks).forEach(([s,tasks])=>{
+                const done = todayRec.tasks[s]?.length||0;
+                document.getElementById(`${s}Progress`).textContent=`${done}/${tasks.length}`;
+                tasks.forEach(t=>{
+                    const c = document.querySelector(`.task-check[data-subject="${s}"][data-task="${t}"]`);
+                    if(c){
+                        const isChecked = todayRec.tasks[s]?.includes(t)||false;
+                        c.classList.toggle('checked',isChecked);
+                    }
+                });
+            });
+        }
+        function updateSummary() {
+            const todayRec = data.dailyRecords.find(item=>item.date===today)||{tasks:{}};
+            const summary = document.getElementById('summaryContent');
+            const tasksArr = [];
+            Object.entries(todayRec.tasks).forEach(([s,tasks])=>{
+                tasks.forEach(t=>tasksArr.push({s,t}));
+            });
+            if(tasksArr.length===0){
+                summary.innerHTML='<span class="text-light">今日未完成任何打卡任务</span>';
+                return;
+            }
+            let html='';
+            tasksArr.forEach(({s,t})=>{
+                html+=`<span class="summary-task"><span class="summary-task-tag" style="background:var(--${s})"></span>${t}</span>`;
+            });
+            summary.innerHTML=html;
+        }
+        function saveToday() {
+            const idx = data.dailyRecords.findIndex(item=>item.date===today);
+            const checked = {};
+            document.querySelectorAll('.task-check').forEach(c=>{
+                if(c.classList.contains('checked')){
+                    const s = c.dataset.subject;
+                    const t = c.dataset.task;
+                    checked[s] = checked[s]||[];
+                    checked[s].push(t);
+                }
+            });
+            if(idx>-1){
+                data.dailyRecords[idx]={date:today,tasks:checked};
+            }else{
+                data.dailyRecords.push({date:today,tasks:checked});
+            }
+            data.hundredDays[today] = data.hundredDays[today]||{};
+            getAllTasks().forEach(({task})=>{
+                data.hundredDays[today][task] = false;
+            });
+            Object.entries(checked).forEach(([s,tasks])=>{
+                tasks.forEach(t=>data.hundredDays[today][t]=true);
+            });
+            saveData();
+            updateTodayTaskStatus();
+            updateSummary();
+            renderTable();
+        }
+        function renderTable() {
+            days100 = generate100Days();
+            const todayIdx = days100.indexOf(today);
+            const thead = document.querySelector('.hundred-days-table thead tr');
+            thead.innerHTML='<th>任务名称</th>';
+            days100.forEach((d,idx)=>{
+                const th = document.createElement('th');
+                const fd = formatDate(d);
+                th.textContent=fd.split('年')[1].replace('月','/').replace('日','');
+                th.title=fd;
+                if(idx===todayIdx)th.classList.add('today-col');
+                thead.appendChild(th);
+            });
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML='';
+            getAllTasks().forEach(({subject,task})=>{
+                const tr = document.createElement('tr');
+                const tdTask = document.createElement('td');
+                tdTask.innerHTML=`<span class="subject-label" style="background:var(--${subject})">${subject}</span>${task}`;
+                tr.appendChild(tdTask);
+                days100.forEach((d,idx)=>{
+                    const td = document.createElement('td');
+                    td.className='task-cell';
+                    if(idx===todayIdx)td.classList.add('today-col');
+                    const isChecked = data.hundredDays[d]?.[task]||false;
+                    if(isChecked){
+                        td.classList.add('checked');
+                        td.textContent='✓';
+                    }
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+        function exportToday() {
+            const todayRec = data.dailyRecords.find(item=>item.date===today)||{tasks:{}};
+            if(!Object.keys(todayRec.tasks).length)return alert('今日无打卡记录');
+            const div = document.createElement('div');
+            div.style.position='fixed';
+            div.style.top='-9999px';
+            div.style.left='-9999px';
+            div.style.width='800px';
+            div.style.padding='30px';
+            div.style.background='#fff';
+            let html=`<h2 style="text-align:center;margin-bottom:20px">${formatDate(today)} 打卡记录</h2>`;
+            Object.entries(data.subjectTasks).forEach(([s,tasks])=>{
+                const done = todayRec.tasks[s]||[];
+                if(!done.length)return;
+                html+=`<div style="margin-bottom:15px"><h3 style="background:var(--${s});color:#fff;padding:8px;border-radius:4px">${s}（${done.length}/${tasks.length}）</h3><div style="padding:10px;border:1px solid #eee;display:flex;flex-wrap:wrap;gap:8px">`;
+                done.forEach(t=>html+=`<span style="padding:6px 12px;background:#f8f9fa;border-radius:20px;margin:4px">✓ ${t}</span>`);
+                html+='</div></div>';
+            });
+            div.innerHTML=html;
+            document.body.appendChild(div);
+            html2canvas(div).then(canvas=>{
+                const a = document.createElement('a');
+                a.download=`${formatDate(today)}打卡记录.png`;
+                a.href=canvas.toDataURL('image/png');
+                a.click();
+                document.body.removeChild(div);
+            });
+        }
+        function exportFullTable() {
+            const tableContainer = document.getElementById('tableContainer');
+            html2canvas(tableContainer,{scale:2,useCORS:true}).then(canvas=>{
+                const a = document.createElement('a');
+                a.download=`中考百天打卡表_${formatDate(today)}.png`;
+                a.href=canvas.toDataURL('image/png');
+                a.click();
+            });
+        }
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+        }
+        document.getElementById('exportTodayBtn').onclick=exportToday;
+        document.getElementById('exportTableBtn').onclick=exportFullTable;
+        document.getElementById('exportFullTableBtn').onclick=exportFullTable;
+        bindPagination();
+        initTodayTaskDom();
+        initManageTaskDom();
+        updateSummary();
+        renderTable();
+    </script>
 </body>
 </html>
