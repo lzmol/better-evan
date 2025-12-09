@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>World Clock</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --good: #10b981;
+    }
+    html, body {
+      margin: 0; padding: 0; background: var(--bg); color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    header {
+      padding: 20px;
+      text-align: center;
+    }
+    header h1 { margin: 0 0 8px; font-size: 1.8rem; }
+    header p { margin: 0; color: var(--muted); }
+    .container {
+      max-width: 980px; margin: 0 auto; padding: 20px;
+      display: grid; gap: 16px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .city {
+      display: flex; align-items: baseline; justify-content: space-between;
+    }
+    .city h2 {
+      margin: 0; font-size: 1.1rem; font-weight: 600;
+    }
+    .city .tz {
+      margin-left: 8px; color: var(--muted); font-size: 0.9rem;
+    }
+    .time {
+      margin-top: 8px; font-size: 2rem; font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
+    }
+    .date {
+      margin-top: 4px; color: var(--muted); font-size: 0.95rem;
+    }
+    .footer {
+      margin-top: 8px; color: var(--muted); font-size: 0.85rem;
+    }
+    .controls {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    }
+    .controls input, .controls select, .controls button {
+      background: #0b1220; border: 1px solid #1f2937; color: var(--text);
+      border-radius: 8px; padding: 10px 12px; font-size: 0.95rem;
+    }
+    .controls button { cursor: pointer; }
+    .hint { color: var(--muted); font-size: 0.85rem; margin-left: 4px; }
+    .local {
+      color: var(--good); font-size: 0.9rem; margin-left: 6px;
+    }
+    .accent { color: var(--accent); }
+    .small { font-size: 0.85rem; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>World clock</h1>
+    <p>Live local times for major cities and your chosen time zones</p>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <div class="controls">
+        <input id="cityName" type="text" placeholder="City name (e.g., Espoo)" aria-label="City name" />
+        <input id="tzId" type="text" placeholder="IANA time zone (e.g., Europe/Helsinki)" aria-label="Time zone ID" />
+        <button id="addBtn">Add time zone</button>
+        <span class="hint">Tip: Use valid IANA IDs like America/New_York, Asia/Tokyo, Europe/London.</span>
+      </div>
+      <div class="footer small">
+        Current local time detection uses the browser’s time zone. Add or remove entries freely.
+      </div>
+    </div>
+
+    <div id="grid" class="grid"></div>
+
+    <div class="card">
+      <div class="footer small">
+        Examples: Europe/Helsinki • Europe/London • America/New_York • Asia/Tokyo • Asia/Shanghai • Australia/Sydney • UTC
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Predefined cities and time zones
+    const presets = [
+      { city: "Espoo", tz: "Europe/Helsinki" },
+      { city: "London", tz: "Europe/London" },
+      { city: "New York", tz: "America/New_York" },
+      { city: "San Francisco", tz: "America/Los_Angeles" },
+      { city: "Tokyo", tz: "Asia/Tokyo" },
+      { city: "Shanghai", tz: "Asia/Shanghai" },
+      { city: "Sydney", tz: "Australia/Sydney" },
+      { city: "UTC", tz: "UTC" }
+    ];
+
+    // Try to detect local zone
+    const localTZ = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    const localCity = "Local";
+
+    // State
+    let clocks = [];
+
+    // Helpers
+    function fmtTime(d, tz) {
+      return new Intl.DateTimeFormat("en-GB", {
+        timeZone: tz,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      }).format(d);
+    }
+    function fmtDate(d, tz) {
+      return new Intl.DateTimeFormat("en-GB", {
+        timeZone: tz,
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "2-digit"
+      }).format(d);
+    }
+    function safeTZ(tz) {
+      try {
+        // Probe formatting to validate tz ID
+        new Intl.DateTimeFormat("en-US", { timeZone: tz }).format(new Date());
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function createCard({ city, tz, isLocal }) {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.dataset.tz = tz;
+
+      const header = document.createElement("div");
+      header.className = "city";
+      const h2 = document.createElement("h2");
+      h2.textContent = city;
+      const tzSpan = document.createElement("span");
+      tzSpan.className = "tz";
+      tzSpan.textContent = tz;
+      header.appendChild(h2);
+      header.appendChild(tzSpan);
+
+      if (isLocal) {
+        const localSpan = document.createElement("span");
+        localSpan.className = "local";
+        localSpan.textContent = "Your local time";
+        header.appendChild(localSpan);
+      }
+
+      const timeEl = document.createElement("div");
+      timeEl.className = "time";
+      timeEl.textContent = "--:--:--";
+
+      const dateEl = document.createElement("div");
+      dateEl.className = "date";
+      dateEl.textContent = "";
+
+      const controls = document.createElement("div");
+      controls.style.marginTop = "10px";
+      const removeBtn = document.createElement("button");
+      removeBtn.textContent = "Remove";
+      removeBtn.onclick = () => {
+        card.remove();
+        clocks = clocks.filter(c => c.card !== card);
+      };
+      controls.appendChild(removeBtn);
+
+      card.appendChild(header);
+      card.appendChild(timeEl);
+      card.appendChild(dateEl);
+      card.appendChild(controls);
+
+      return { card, timeEl, dateEl };
+    }
+
+    function addClock(city, tz, isLocal = false) {
+      if (!safeTZ(tz)) {
+        alert(`Invalid time zone: ${tz}\nUse a valid IANA ID (e.g., Europe/Helsinki).`);
+        return;
+      }
+      const { card, timeEl, dateEl } = createCard({ city, tz, isLocal });
+      document.getElementById("grid").appendChild(card);
+      clocks.push({ card, timeEl, dateEl, tz });
+    }
+
+    function tick() {
+      const now = new Date();
+      clocks.forEach(({ timeEl, dateEl, tz }) => {
+        timeEl.textContent = fmtTime(now, tz);
+        dateEl.textContent = fmtDate(now, tz);
+      });
+    }
+
+    // Init
+    window.addEventListener("DOMContentLoaded", () => {
+      // Local first
+      addClock(localCity, localTZ, true);
+      // Presets
+      presets.forEach(p => addClock(p.city, p.tz));
+
+      // Add custom
+      const cityInput = document.getElementById("cityName");
+      const tzInput = document.getElementById("tzId");
+      document.getElementById("addBtn").addEventListener("click", () => {
+        const city = (cityInput.value || "").trim() || tzInput.value.trim() || "Custom";
+        const tz = (tzInput.value || "").trim();
+        if (!tz) {
+          alert("Please enter a valid IANA time zone (e.g., Europe/Helsinki).");
+          return;
+        }
+        addClock(city, tz);
+        cityInput.value = "";
+        tzInput.value = "";
+      });
+
+      // Start clock
+      tick();
+      setInterval(tick, 1000);
+    });
+  </script>
+</body>
+</html>
