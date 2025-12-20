@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日程规划 + 右侧滑出便签（文本前移+关闭按钮版）</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+            position: relative;
+            height: 100vh;
+        }
+
+        /* 右侧滑出便签栏 */
+        .notes-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 320px;
+            height: 100%;
+            background-color: #fff;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+            z-index: 50;
+            transform: translateX(100%);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .notes-panel.active {
+            transform: translateX(0);
+        }
+
+        .panel-header {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .panel-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .add-note-btn {
+            background-color: #4285f4;
+            color: white;
+        }
+
+        .add-note-btn:hover {
+            background-color: #3367d6;
+        }
+
+        .close-panel-btn {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .close-panel-btn:hover {
+            background-color: #d32f2f;
+        }
+
+        .undo-btn {
+            background-color: #e0e0e0;
+            color: #666;
+        }
+
+        .undo-btn:hover {
+            background-color: #d0d0d0;
+        }
+
+        .notes-container {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .empty-notes-tip {
+            text-align: center;
+            color: #999;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        /* 便签卡片 */
+        .note-card {
+            background-color: #fffbe6;
+            border: 1px solid #fcd53f;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 5px rgba(252, 213, 63, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: slideInRight 0.5s ease-out;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .note-card:hover {
+            box-shadow: 0 4px 10px rgba(252, 213, 63, 0.3);
+        }
+
+        .note-content-wrapper {
+            flex: 1;
+        }
+
+        .note-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .note-content {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.4;
+            margin-bottom: 10px;
+        }
+
+        .note-date {
+            font-size: 11px;
+            color: #999;
+            text-align: right;
+        }
+
+        /* 尾部打卡框 */
+        .note-check-box {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-top: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            align-self: flex-end;
+            transition: all 0.2s ease;
+        }
+
+        .note-check-box:hover {
+            background-color: #f0f0f0;
+        }
+
+        .note-check-box.checked {
+            background-color: #4caf50;
+            border-color: #4caf50;
+            color: white;
+        }
+
+        .check-mark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 40px;
+            color: #4caf50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .note-card.done .check-mark {
+            opacity: 1;
+        }
+
+        /* 便签编辑弹窗 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            transform: translateY(-50px) scale(0.9);
+            transition: all 0.4s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .modal.active .modal-content {
+            transform: translateY(0) scale(1);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #4285f4;
+            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .confirm-btn, .cancel-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .confirm-btn {
+            background-color: #4285f4;
+            color: white;
+        }
+
+        .confirm-btn:hover {
+            background-color: #3367d6;
+        }
+
+        .cancel-btn {
+            background-color: #e0e0e0;
+            color: #333;
+        }
+
+        .cancel-btn:hover {
+            background-color: #d0d0d0;
+        }
+
+        /* 页眉样式 */
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 1000px;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .current-task {
+            background-color: #4285f4;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 500;
+            display: inline-block;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+            animation: slideUp 0.6s ease-out, pulse 2s infinite alternate;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .current-task::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shine 2s infinite;
+        }
+
+        .current-time {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+            animation: popIn 0.5s ease;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .add-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            background-color: #4285f4;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .add-btn:hover {
+            background-color: #3367d6;
+            transform: translateY(-2px);
+        }
+
+        /* 打开便签按钮 - 主页新增 */
+        .open-notes-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            background-color: #f4b400;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .open-notes-btn:hover {
+            background-color: #f09300;
+            transform: translateY(-2px);
+        }
+
+        /* 竖版时间轴容器 */
+        .timeline-container {
+            width: 100%;
+            max-width: 1000px;
+            height: 700px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            position: relative;
+            overflow: auto;
+            display: flex;
+            animation: scaleIn 0.8s ease-out;
+        }
+
+        /* 左侧竖版时间轴 - 宽度调整为130px */
+        .timeline-axis {
+            width: 130px;
+            height: calc(24 * 60px); /* 24小时，每小时60px */
+            border-right: 2px solid #e0e0e0;
+            padding: 0 10px;
+            background-color: #fafafa;
+            flex-shrink: 0;
+        }
+
+        .time-tick {
+            height: 60px; /* 每小时占60px高度 */
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .tick-line {
+            position: absolute;
+            right: 0;
+            width: 10px;
+            height: 1px;
+            background-color: #ddd;
+        }
+
+        /* 整点刻度线更长 */
+        .time-tick.hour .tick-line {
+            width: 15px;
+            background-color: #999;
+        }
+
+        .tick-label {
+            font-size: 12px;
+            color: #666;
+            margin-right: 5px;
+            white-space: nowrap;
+            /* 文本向上移动30px，位于当前小时刻度线与下一小时刻度线的中间 */
+            transform: translateY(-30px);
+        }
+
+        /* 实时时间横线 */
+        .current-time-line {
+            position: absolute;
+            left: 130px; /* 对应时间轴宽度 */
+            right: 0;
+            height: 2px;
+            background-color: #ea4335;
+            box-shadow: 0 0 8px rgba(234, 67, 53, 0.6);
+            z-index: 20;
+            pointer-events: none;
+            animation: blink 1s infinite alternate, glow 2s infinite alternate;
+        }
+
+        /* 右侧日程区域 */
+        .schedule-area {
+            flex: 1;
+            height: calc(24 * 60px); /* 和时间轴高度一致 */
+            position: relative;
+            padding: 0 20px;
+            background: repeating-linear-gradient(
+                to bottom,
+                transparent,
+                transparent 59px,
+                #f0f0f0 60px,
+                #f0f0f0 60px
+            ); /* 每小时一条横线 */
+        }
+
+        /* 日程卡片 - 绝对定位，高度匹配时长 */
+        .schedule-card {
+            position: absolute;
+            left: 20px;
+            right: 20px;
+            background-color: #ffffff;
+            border-left: 4px solid #4285f4;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow: hidden;
+            cursor: move;
+            transition: all 0.3s ease;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .schedule-card:hover {
+            box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+        }
+
+        .schedule-card.active {
+            border-left-color: #ea4335;
+            box-shadow: 0 0 0 3px rgba(234, 67, 53, 0.1);
+        }
+
+        /* 拖拽手柄 */
+        .card-resize-handle {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background-color: #4285f4;
+            cursor: ns-resize;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .schedule-card:hover .card-resize-handle {
+            opacity: 1;
+        }
+
+        .progress-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background-color: #fef9c3;
+            opacity: 0.7;
+            z-index: 1;
+            transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .card-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .card-name {
+            font-size: 15px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: #222;
+        }
+
+        .card-time {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            color: #ea4335;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 2;
+        }
+
+        .schedule-card:hover .delete-btn {
+            opacity: 1;
+        }
+
+        /* 空状态提示 */
+        .empty-tip {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 16px;
+            color: #999;
+            text-align: center;
+        }
+
+        /* 动画定义 */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            70% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes blink {
+            from { opacity: 0.7; }
+            to { opacity: 1; }
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 0 8px rgba(234, 67, 53, 0.6); }
+            to { box-shadow: 0 0 15px rgba(234, 67, 53, 0.8); }
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.03); }
+        }
+
+        @keyframes shine {
+            100% { left: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="current-task" id="currentTask">现在应该做：暂无日程</div>
+        <div class="current-time" id="currentTime"></div>
+        <div class="controls">
+            <button class="add-btn" id="addScheduleBtn">+ 添加日程</button>
+            <!-- 新增打开便签按钮 -->
+            <button class="open-notes-btn" id="openNotesBtn">📝 打开便签</button>
+        </div>
+    </div>
+
+    <div class="timeline-container" id="timelineContainer">
+        <div class="timeline-axis" id="timelineAxis"></div>
+        <div class="current-time-line" id="currentTimeLine"></div>
+        <div class="schedule-area" id="scheduleArea"></div>
+    </div>
+
+    <!-- 右侧便签栏 -->
+    <div class="notes-panel" id="notesPanel">
+        <div class="panel-header">
+            <div class="panel-title">便签管理</div>
+            <div class="panel-actions">
+                <button class="panel-btn add-note-btn" id="addNoteBtn">+</button>
+                <button class="panel-btn undo-btn" id="undoBtn">↶</button>
+                <button class="panel-btn close-panel-btn" id="closePanelBtn">×</button>
+            </div>
+        </div>
+        <div class="notes-container" id="notesContainer">
+            <div class="empty-notes-tip">暂无便签<br>点击右上角 + 新建</div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑便签弹窗 -->
+    <div class="modal" id="noteModal">
+        <div class="modal-content">
+            <div class="modal-title" id="noteModalTitle">新建便签</div>
+            <input type="hidden" id="noteIdInput">
+            <div class="form-group">
+                <label for="noteTitleInput">标题</label>
+                <input type="text" id="noteTitleInput" placeholder="例如：购物清单">
+            </div>
+            <div class="form-group">
+                <label for="noteContentInput">内容</label>
+                <textarea id="noteContentInput" placeholder="请输入便签内容..."></textarea>
+            </div>
+            <div class="btn-group">
+                <button class="confirm-btn" id="saveNoteBtn">保存</button>
+                <button class="cancel-btn" id="cancelNoteBtn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加日程弹窗 -->
+    <div class="modal" id="addScheduleModal">
+        <div class="modal-content">
+            <div class="modal-title">添加日程</div>
+            <div class="form-group">
+                <label for="scheduleName">日程名称</label>
+                <input type="text" id="scheduleName" placeholder="例如：数学复习">
+            </div>
+            <div class="form-group">
+                <label for="startTime">开始时间</label>
+                <input type="datetime-local" id="startTime">
+            </div>
+            <div class="form-group">
+                <label for="endTime">结束时间</label>
+                <input type="datetime-local" id="endTime">
+            </div>
+            <div class="btn-group">
+                <button class="confirm-btn" id="confirmAddBtn">确认添加</button>
+                <button class="cancel-btn" id="cancelAddBtn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 日程详情弹窗 -->
+    <div class="modal" id="detailModal">
+        <div class="modal-content">
+            <div class="modal-title" id="detailTitle">日程详情</div>
+            <div class="detail-item">
+                <div class="detail-label">日程名称</div>
+                <div class="detail-value" id="detailName">-</div>
+            </div>
+            <div class="detail-item">
+                <div class="detail-label">开始时间</div>
+                <div class="detail-value" id="detailStartTime">-</div>
+            </div>
+            <div class="detail-item">
+                <div class="detail-label">结束时间</div>
+                <div class="detail-value" id="detailEndTime">-</div>
+            </div>
+            <div class="detail-item">
+                <div class="detail-label">时长</div>
+                <div class="detail-value" id="detailDuration">-</div>
+            </div>
+            <div class="detail-item">
+                <div class="detail-label">完成进度</div>
+                <div class="detail-value" id="detailProgress">-</div>
+            </div>
+            <div class="btn-group">
+                <button class="close-btn" id="closeDetailBtn">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认弹窗 -->
+    <div class="modal" id="deleteConfirmModal">
+        <div class="modal-content">
+            <div class="modal-title">确认删除</div>
+            <p style="text-align: center; margin-bottom: 20px;">确定要删除该日程吗？</p>
+            <div class="btn-group">
+                <button class="confirm-btn" id="confirmDeleteBtn">确认</button>
+                <button class="cancel-btn" id="cancelDeleteBtn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM元素
+        const addScheduleBtn = document.getElementById('addScheduleBtn');
+        const addScheduleModal = document.getElementById('addScheduleModal');
+        const cancelAddBtn = document.getElementById('cancelAddBtn');
+        const confirmAddBtn = document.getElementById('confirmAddBtn');
+        const timelineAxis = document.getElementById('timelineAxis');
+        const scheduleArea = document.getElementById('scheduleArea');
+        const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const currentTimeEl = document.getElementById('currentTime');
+        const currentTimeLine = document.getElementById('currentTimeLine');
+        const currentTask = document.getElementById('currentTask');
+        const detailModal = document.getElementById('detailModal');
+        const closeDetailBtn = document.getElementById('closeDetailBtn');
+        const detailTitle = document.getElementById('detailTitle');
+        const detailName = document.getElementById('detailName');
+        const detailStartTime = document.getElementById('detailStartTime');
+        const detailEndTime = document.getElementById('detailEndTime');
+        const detailDuration = document.getElementById('detailDuration');
+        const detailProgress = document.getElementById('detailProgress');
+
+        // 便签相关元素
+        const notesPanel = document.getElementById('notesPanel');
+        const addNoteBtn = document.getElementById('addNoteBtn');
+        const undoBtn = document.getElementById('undoBtn');
+        const closePanelBtn = document.getElementById('closePanelBtn');
+        const openNotesBtn = document.getElementById('openNotesBtn'); // 新增按钮
+        const notesContainer = document.getElementById('notesContainer');
+        const noteModal = document.getElementById('noteModal');
+        const noteModalTitle = document.getElementById('noteModalTitle');
+        const noteIdInput = document.getElementById('noteIdInput');
+        const noteTitleInput = document.getElementById('noteTitleInput');
+        const noteContentInput = document.getElementById('noteContentInput');
+        const saveNoteBtn = document.getElementById('saveNoteBtn');
+        const cancelNoteBtn = document.getElementById('cancelNoteBtn');
+
+        // 核心配置：每小时对应60px高度
+        const PX_PER_HOUR = 60;
+        const PX_PER_MINUTE = PX_PER_HOUR / 60; // 每分钟对应1px
+
+        // 拖拽相关变量
+        let isDraggingCard = false;
+        let isResizingCard = false;
+        let dragStartY = 0;
+        let dragCardTop = 0;
+        let resizeStartY = 0;
+        let resizeCardHeight = 0;
+        let currentDragCardId = null;
+
+        // 便签数据
+        let notes = [];
+        let deletedNote = null; // 用于撤回的临时存储
+
+        // 从localStorage读取数据
+        function loadData() {
+            // 加载日程
+            const savedSchedules = localStorage.getItem('schedules');
+            schedules = savedSchedules ? JSON.parse(savedSchedules) : [];
+            
+            // 加载便签
+            const savedNotes = localStorage.getItem('notes');
+            notes = savedNotes ? JSON.parse(savedNotes) : [];
+        }
+
+        // 保存数据到localStorage
+        function saveSchedules() {
+            localStorage.setItem('schedules', JSON.stringify(schedules));
+        }
+
+        function saveNotes() {
+            localStorage.setItem('notes', JSON.stringify(notes));
+        }
+
+        let schedules = [];
+        loadData();
+        let currentDeleteId = null;
+
+        // 更新当前时间
+        function updateCurrentTime() {
+            const now = new Date();
+            currentTimeEl.textContent = now.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            updateCurrentTimeLine();
+            updateCurrentTask();
+        }
+        setInterval(updateCurrentTime, 1000);
+        updateCurrentTime();
+
+        // 初始化竖版时间轴刻度 - 修正刻度显示逻辑
+        function initVerticalTimeAxis() {
+            timelineAxis.innerHTML = '';
+            // 生成0-23小时的刻度
+            for (let hour = 0; hour < 24; hour++) {
+                // 整点刻度容器（高度60px）
+                const hourTick = document.createElement('div');
+                hourTick.className = `time-tick hour`;
+                hourTick.style.height = '60px';
+                
+                // 刻度线
+                const tickLine = document.createElement('div');
+                tickLine.className = 'tick-line';
+                hourTick.appendChild(tickLine);
+                
+                // 时间文本（通过CSS transform: translateY(-30px) 向上移动30px）
+                const tickLabel = document.createElement('div');
+                tickLabel.className = 'tick-label';
+                tickLabel.textContent = `${hour}:00`;
+                hourTick.appendChild(tickLabel);
+                
+                timelineAxis.appendChild(hourTick);
+            }
+        }
+
+        // 更新实时时间横线位置
+        function updateCurrentTimeLine() {
+            const now = new Date();
+            // 计算当前时间距离0点的像素高度
+            const totalMinutes = now.getHours() * 60 + now.getMinutes();
+            const top = totalMinutes * PX_PER_MINUTE;
+            currentTimeLine.style.top = `${top}px`;
+        }
+
+        // 计算日程卡片的位置和高度（以时间刻度为基准对齐）
+        function getCardPosition(start, end) {
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+
+            // 计算开始时间距离0点的像素高度
+            const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
+            const top = startMinutes * PX_PER_MINUTE;
+
+            // 计算结束时间距离0点的像素高度
+            const endMinutes = endDate.getHours() * 60 + endDate.getMinutes();
+            const endTop = endMinutes * PX_PER_MINUTE;
+
+            // 卡片高度 = 结束时间top - 开始时间top
+            const height = endTop - top;
+
+            return { top, height };
+        }
+
+        // 根据像素位置计算对应的时间
+        function getTimeFromPixel(top) {
+            const totalMinutes = Math.round(top / PX_PER_MINUTE);
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            
+            const date = new Date();
+            date.setHours(hours, minutes, 0, 0);
+            return date;
+        }
+
+        // 计算日程进度
+        function getScheduleProgress(start, end) {
+            const now = new Date();
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            const total = endDate - startDate;
+            
+            if (now < startDate) return 0;
+            if (now > endDate) return 100;
+            return Math.floor(((now - startDate) / total) * 100);
+        }
+
+        // 获取当前应做的日程
+        function getCurrentTask() {
+            const now = new Date();
+            const todayStr = now.toISOString().split('T')[0];
+            const todaySchedules = schedules.filter(s => s.startTime.startsWith(todayStr));
+
+            // 找到当前正在进行的日程
+            const currentSchedule = todaySchedules.find(s => {
+                const start = new Date(s.startTime);
+                const end = new Date(s.endTime);
+                return now >= start && now <= end;
+            });
+
+            // 没有进行中的，找下一个即将开始的
+            if (!currentSchedule) {
+                const upcoming = todaySchedules.filter(s => new Date(s.startTime) > now)
+                    .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))[0];
+                return upcoming ? `即将开始：${upcoming.name}` : '暂无日程';
+            }
+
+            return currentSchedule.name;
+        }
+
+        // 更新页眉当前任务提示
+        function updateCurrentTask() {
+            const task = getCurrentTask();
+            currentTask.textContent = `现在应该做：${task}`;
+            
+            // 高亮当前日程卡片
+            document.querySelectorAll('.schedule-card').forEach(card => {
+                card.classList.remove('active');
+                if (card.dataset.name === task.replace('即将开始：', '')) {
+                    card.classList.add('active');
+                }
+            });
+        }
+
+        // 打开日程详情弹窗
+        function openDetailModal(schedule) {
+            const progress = getScheduleProgress(schedule.startTime, schedule.endTime);
+            const startDate = new Date(schedule.startTime);
+            const endDate = new Date(schedule.endTime);
+            const durationMinutes = Math.floor((endDate - startDate) / (1000 * 60));
+
+            detailTitle.textContent = `${schedule.name} - 详情`;
+            detailName.textContent = schedule.name;
+            detailStartTime.textContent = startDate.toLocaleString('zh-CN');
+            detailEndTime.textContent = endDate.toLocaleString('zh-CN');
+            detailDuration.textContent = `${durationMinutes} 分钟`;
+            detailProgress.textContent = `${progress}%`;
+
+            detailModal.classList.add('active');
+        }
+
+        // 渲染日程卡片（以时间刻度为基准对齐+拖拽功能）
+        function renderSchedules() {
+            scheduleArea.innerHTML = '';
+            const now = new Date();
+            const todayStr = now.toISOString().split('T')[0];
+            
+            const todaySchedules = schedules.filter(s => s.startTime.startsWith(todayStr));
+
+            if (todaySchedules.length === 0) {
+                const emptyTip = document.createElement('div');
+                emptyTip.className = 'empty-tip';
+                emptyTip.innerHTML = '今日暂无日程<br>点击"+添加日程"创建';
+                scheduleArea.appendChild(emptyTip);
+                return;
+            }
+
+            todaySchedules.forEach(schedule => {
+                const { top, height } = getCardPosition(schedule.startTime, schedule.endTime);
+                const progress = getScheduleProgress(schedule.startTime, schedule.endTime);
+                const startDate = new Date(schedule.startTime);
+                const endDate = new Date(schedule.endTime);
+
+                const card = document.createElement('div');
+                card.className = 'schedule-card';
+                card.dataset.id = schedule.id;
+                card.dataset.name = schedule.name;
+                // 绝对定位：top匹配开始时间，height匹配结束时间-开始时间
+                card.style.top = `${top}px`;
+                card.style.height = `${height}px`;
+
+                card.innerHTML = `
+                    <div class="progress-layer" style="width: ${progress}%"></div>
+                    <div class="card-content">
+                        <div class="card-name">${schedule.name}</div>
+                        <div class="card-time">
+                            ${startDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - 
+                            ${endDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </div>
+                        <button class="delete-btn" data-id="${schedule.id}">删除</button>
+                    </div>
+                    <div class="card-resize-handle"></div>
+                `;
+
+                // 点击卡片打开详情
+                card.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('delete-btn') || isDraggingCard || isResizingCard) return;
+                    openDetailModal(schedule);
+                });
+
+                // 卡片拖拽 - 开始
+                card.addEventListener('mousedown', (e) => {
+                    if (e.target.classList.contains('delete-btn') || e.target.classList.contains('card-resize-handle')) return;
+                    
+                    isDraggingCard = true;
+                    currentDragCardId = schedule.id;
+                    dragStartY = e.clientY;
+                    dragCardTop = parseFloat(card.style.top);
+                    
+                    document.body.style.userSelect = 'none';
+                    card.style.opacity = '0.8';
+                    card.style.zIndex = '30';
+                });
+
+                // 调整结束时间 - 开始
+                card.querySelector('.card-resize-handle').addEventListener('mousedown', (e) => {
+                    e.stopPropagation();
+                    isResizingCard = true;
+                    currentDragCardId = schedule.id;
+                    resizeStartY = e.clientY;
+                    resizeCardHeight = parseFloat(card.style.height);
+                    
+                    document.body.style.userSelect = 'none';
+                    card.style.opacity = '0.8';
+                    card.style.zIndex = '30';
+                });
+
+                scheduleArea.appendChild(card);
+            });
+
+            // 绑定删除事件
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    currentDeleteId = btn.dataset.id;
+                    deleteConfirmModal.classList.add('active');
+                });
+            });
+
+            updateCurrentTask();
+        }
+
+        // 全局鼠标移动事件 - 处理拖拽和拉伸
+        document.addEventListener('mousemove', (e) => {
+            // 拖拽卡片调整开始时间
+            if (isDraggingCard && currentDragCardId) {
+                const deltaY = e.clientY - dragStartY;
+                let newTop = dragCardTop + deltaY;
+                // 限制拖拽范围在0-24小时内
+                newTop = Math.max(0, Math.min(calc(24 * 60 * PX_PER_MINUTE) - 20, newTop));
+                
+                const card = document.querySelector(`[data-id="${currentDragCardId}"]`);
+                if (card) {
+                    card.style.top = `${newTop}px`;
+                }
+            }
+
+            // 拉伸卡片调整结束时间
+            if (isResizingCard && currentDragCardId) {
+                const deltaY = e.clientY - resizeStartY;
+                let newHeight = resizeCardHeight + deltaY;
+                // 最小高度20px
+                newHeight = Math.max(20, Math.min(calc(24 * 60 * PX_PER_MINUTE) - parseFloat(card.style.top), newHeight));
+                
+                const card = document.querySelector(`[data-id="${currentDragCardId}"]`);
+                if (card) {
+                    card.style.height = `${newHeight}px`;
+                }
+            }
+        });
+
+        // 全局鼠标松开事件 - 保存拖拽/拉伸后的时间
+        document.addEventListener('mouseup', (e) => {
+            if (isDraggingCard && currentDragCardId) {
+                const card = document.querySelector(`[data-id="${currentDragCardId}"]`);
+                if (card) {
+                    const newTop = parseFloat(card.style.top);
+                    const newStartTime = getTimeFromPixel(newTop);
+                    
+                    // 更新日程数据
+                    const scheduleIndex = schedules.findIndex(s => s.id === currentDragCardId);
+                    if (scheduleIndex !== -1) {
+                        const oldEndTime = new Date(schedules[scheduleIndex].endTime);
+                        // 保持时长不变，更新开始时间
+                        const duration = oldEndTime - new Date(schedules[scheduleIndex].startTime);
+                        const newEndTime = new Date(newStartTime.getTime() + duration);
+                        
+                        schedules[scheduleIndex].startTime = newStartTime.toISOString();
+                        schedules[scheduleIndex].endTime = newEndTime.toISOString();
+                        saveSchedules();
+                    }
+                }
+            }
+
+            if (isResizingCard && currentDragCardId) {
+                const card = document.querySelector(`[data-id="${currentDragCardId}"]`);
+                if (card) {
+                    const newHeight = parseFloat(card.style.height);
+                    const startTop = parseFloat(card.style.top);
+                    const newEndTime = getTimeFromPixel(startTop + newHeight);
+                    
+                    // 更新日程数据
+                    const scheduleIndex = schedules.findIndex(s => s.id === currentDragCardId);
+                    if (scheduleIndex !== -1) {
+                        schedules[scheduleIndex].endTime = newEndTime.toISOString();
+                        saveSchedules();
+                    }
+                }
+            }
+
+            // 重置拖拽状态
+            isDraggingCard = false;
+            isResizingCard = false;
+            currentDragCardId = null;
+            document.body.style.userSelect = 'auto';
+            
+            // 重新渲染卡片
+            setTimeout(() => {
+                renderSchedules();
+            }, 50);
+        });
+
+        // 打开添加弹窗
+        addScheduleBtn.addEventListener('click', () => {
+            const now = new Date();
+            const nowStr = now.toISOString().slice(0, 16);
+            document.getElementById('startTime').value = nowStr;
+            
+            // 默认结束时间为1小时后
+            const end = new Date(now.getTime() + 3600000);
+            const endStr = end.toISOString().slice(0, 16);
+            document.getElementById('endTime').value = endStr;
+
+            addScheduleModal.classList.add('active');
+        });
+
+        // 关闭添加弹窗
+        cancelAddBtn.addEventListener('click', () => {
+            addScheduleModal.classList.remove('active');
+        });
+
+        // 关闭详情弹窗
+        closeDetailBtn.addEventListener('click', () => {
+            detailModal.classList.remove('active');
+        });
+
+        // 添加日程
+        confirmAddBtn.addEventListener('click', () => {
+            const name = document.getElementById('scheduleName').value.trim();
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+
+            if (!name || !startTime || !endTime) {
+                alert('请填写完整信息');
+                return;
+            }
+
+            if (new Date(startTime) >= new Date(endTime)) {
+                alert('开始时间不能晚于结束时间');
+                return;
+            }
+
+            const schedule = {
+                id: Date.now().toString(),
+                name,
+                startTime,
+                endTime
+            };
+
+            schedules.push(schedule);
+            saveSchedules();
+            addScheduleModal.classList.remove('active');
+            renderSchedules();
+            
+            // 滚动到新添加的卡片位置
+            setTimeout(() => {
+                const card = document.querySelector(`[data-id="${schedule.id}"]`);
+                if (card) {
+                    const top = parseFloat(card.style.top);
+                    timelineContainer.scrollTop = top - 100;
+                }
+            }, 300);
+        });
+
+        // 取消删除
+        cancelDeleteBtn.addEventListener('click', () => {
+            deleteConfirmModal.classList.remove('active');
+            currentDeleteId = null;
+        });
+
+        // 确认删除
+        confirmDeleteBtn.addEventListener('click', () => {
+            if (!currentDeleteId) return;
+            schedules = schedules.filter(s => s.id !== currentDeleteId);
+            saveSchedules();
+            deleteConfirmModal.classList.remove('active');
+            currentDeleteId = null;
+            renderSchedules();
+        });
+
+        // 辅助计算函数
+        function calc(value) {
+            return eval(value);
+        }
+
+        // 初始化
+        initVerticalTimeAxis();
+        renderSchedules();
+
+        // 窗口滚动时同步时间线
+        timelineContainer.addEventListener('scroll', () => {
+            const originalTop = parseFloat(currentTimeLine.dataset.originalTop || currentTimeLine.style.top);
+            currentTimeLine.dataset.originalTop = originalTop;
+            currentTimeLine.style.top = `${originalTop - timelineContainer.scrollTop}px`;
+        });
+
+        // ================= 便签功能实现 =================
+
+        // 打开便签弹窗
+        function openNoteModal(note = null) {
+            if (note) {
+                noteModalTitle.textContent = '编辑便签';
+                noteIdInput.value = note.id;
+                noteTitleInput.value = note.title;
+                noteContentInput.value = note.content;
+            } else {
+                noteModalTitle.textContent = '新建便签';
+                noteIdInput.value = '';
+                noteTitleInput.value = '';
+                noteContentInput.value = '';
+            }
+            noteModal.classList.add('active');
+        }
+
+        // 渲染便签列表
+        function renderNotes() {
+            notesContainer.innerHTML = '';
+            
+            if (notes.length === 0) {
+                const emptyTip = document.createElement('div');
+                emptyTip.className = 'empty-notes-tip';
+                emptyTip.innerHTML = '暂无便签<br>点击右上角 + 新建';
+                notesContainer.appendChild(emptyTip);
+                return;
+            }
+
+            notes.forEach(note => {
+                const card = document.createElement('div');
+                card.className = 'note-card';
+                card.dataset.id = note.id;
+
+                card.innerHTML = `
+                    <div class="note-content-wrapper">
+                        <div class="note-title">${note.title}</div>
+                        <div class="note-content">${note.content}</div>
+                        <div class="note-date">${new Date(note.createdAt).toLocaleString()}</div>
+                    </div>
+                    <div class="note-check-box" data-id="${note.id}"></div>
+                    <div class="check-mark">✓</div>
+                `;
+
+                // 单击编辑
+                card.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('note-check-box')) return;
+                    openNoteModal(note);
+                });
+
+                // 点击尾部小框打卡
+                card.querySelector('.note-check-box').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    // 视觉反馈
+                    card.classList.add('done');
+                    setTimeout(() => {
+                        // 逻辑删除
+                        const index = notes.findIndex(n => n.id === note.id);
+                        if (index !== -1) {
+                            deletedNote = notes.splice(index, 1)[0];
+                            saveNotes();
+                            renderNotes();
+                        }
+                    }, 300);
+                });
+
+                notesContainer.appendChild(card);
+            });
+        }
+
+        // 保存便签
+        function saveNote() {
+            const title = noteTitleInput.value.trim();
+            const content = noteContentInput.value.trim();
+            
+            if (!title) {
+                alert('请输入标题');
+                return;
+            }
+
+            const id = noteIdInput.value;
+            if (id) {
+                // 编辑
+                const index = notes.findIndex(n => n.id === id);
+                if (index !== -1) {
+                    notes[index].title = title;
+                    notes[index].content = content;
+                }
+            } else {
+                // 新建
+                const newNote = {
+                    id: Date.now().toString(),
+                    title,
+                    content,
+                    createdAt: new Date().toISOString()
+                };
+                notes.push(newNote);
+            }
+
+            saveNotes();
+            noteModal.classList.remove('active');
+            renderNotes();
+        }
+
+        // 撤回删除
+        function undoDelete() {
+            if (!deletedNote) return;
+            notes.push(deletedNote);
+            deletedNote = null;
+            saveNotes();
+            renderNotes();
+        }
+
+        // 便签事件绑定
+        addNoteBtn.addEventListener('click', () => openNoteModal());
+        saveNoteBtn.addEventListener('click', saveNote);
+        cancelNoteBtn.addEventListener('click', () => noteModal.classList.remove('active'));
+        undoBtn.addEventListener('click', undoDelete);
+        closePanelBtn.addEventListener('click', () => notesPanel.classList.remove('active'));
+        openNotesBtn.addEventListener('click', () => notesPanel.classList.add('active')); // 新增按钮事件
+
+        // 侧边栏滑出逻辑 - 简单模拟
+        // 实际场景可根据需要添加手势或按钮控制
+        notesPanel.classList.add('active');
+
+        // 初始化便签
+        renderNotes();
+    </script>
+</body>
+</html>
