@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>初中生考试管理助手</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .current-time {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .setting-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .add-btn {
+            display: block;
+            width: 80%;
+            height: 60px;
+            line-height: 60px;
+            background-color: #4285f4;
+            color: white;
+            text-align: center;
+            font-size: 20px;
+            border-radius: 8px;
+            margin: 0 auto 40px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .add-btn:hover {
+            background-color: #3367d6;
+            transform: translateY(-2px);
+        }
+
+        .exam-container {
+            position: relative;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .timeline {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background-color: #e0e0e0;
+            transform: translateX(-50%);
+        }
+
+        .exam-list {
+            position: relative;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        .exam-card {
+            position: relative;
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .exam-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .exam-card::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 20px;
+            width: 16px;
+            height: 16px;
+            background-color: #4285f4;
+            border-radius: 50%;
+            transform: translateX(-50%);
+            z-index: 1;
+        }
+
+        .exam-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #222;
+        }
+
+        .exam-time {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .exam-status {
+            font-size: 16px;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .status-upcoming {
+            background-color: #e8f0fe;
+            color: #4285f4;
+        }
+
+        .status-ongoing {
+            background-color: #e6f4ea;
+            color: #34a853;
+        }
+
+        .status-ended {
+            background-color: #fef7fb;
+            color: #ea4335;
+        }
+
+        .countdown {
+            background-color: black;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+
+        .delete-btn {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            color: #ea4335;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 8px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal.active .modal-content {
+            transform: translateY(0);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        .confirm-btn, .cancel-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .confirm-btn {
+            background-color: #4285f4;
+            color: white;
+        }
+
+        .cancel-btn {
+            background-color: #e0e0e0;
+            color: #333;
+        }
+
+        .exam-interface {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: white;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .exam-interface.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .exam-interface h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .exam-countdown {
+            font-size: 20px;
+            margin-bottom: 30px;
+            background-color: black;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+        }
+
+        .exit-btn {
+            padding: 10px 20px;
+            background-color: #ea4335;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <button class="setting-btn" id="settingBtn">⚙️</button>
+    <div class="header">
+        <div class="current-time" id="currentTime"></div>
+    </div>
+
+    <button class="add-btn" id="addExamBtn">+ 添加考试</button>
+
+    <div class="exam-container">
+        <div class="timeline"></div>
+        <div class="exam-list" id="examList"></div>
+    </div>
+
+    <!-- 添加考试弹窗 -->
+    <div class="modal" id="addExamModal">
+        <div class="modal-content">
+            <div class="modal-title">添加考试</div>
+            <div class="form-group">
+                <label for="examName">考试名称</label>
+                <input type="text" id="examName" placeholder="例如：七年级数学月考">
+            </div>
+            <div class="form-group">
+                <label for="startTime">开始时间</label>
+                <input type="datetime-local" id="startTime">
+            </div>
+            <div class="form-group">
+                <label for="endTime">结束时间</label>
+                <input type="datetime-local" id="endTime">
+            </div>
+            <div class="btn-group">
+                <button class="confirm-btn" id="confirmAddBtn">确认添加</button>
+                <button class="cancel-btn" id="cancelAddBtn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认弹窗 -->
+    <div class="modal" id="deleteConfirmModal">
+        <div class="modal-content">
+            <div class="modal-title">确认删除</div>
+            <p style="text-align: center; margin-bottom: 20px;">确定要删除该考试吗？</p>
+            <div class="btn-group">
+                <button class="confirm-btn" id="confirmDeleteBtn">确认</button>
+                <button class="cancel-btn" id="cancelDeleteBtn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置铃声弹窗 -->
+    <div class="modal" id="settingModal">
+        <div class="modal-content">
+            <div class="modal-title">铃声设置</div>
+            <div class="form-group">
+                <label for="startSound">考试开始铃声</label>
+                <select id="startSound">
+                    <option value="default">默认提示音</option>
+                    <option value="beep">嘀嘀声</option>
+                    <option value="ring">铃声</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="endSound">考试结束铃声</label>
+                <select id="endSound">
+                    <option value="default">默认提示音</option>
+                    <option value="beep">嘀嘀声</option>
+                    <option value="ring">铃声</option>
+                </select>
+            </div>
+            <div class="btn-group">
+                <button class="confirm-btn" id="saveSettingBtn">保存设置</button>
+                <button class="cancel-btn" id="cancelSettingBtn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 考试界面 -->
+    <div class="exam-interface" id="examInterface">
+        <h2 id="examInterfaceTitle">考试进行中</h2>
+        <div class="exam-countdown" id="examInterfaceCountdown"></div>
+        <button class="exit-btn" id="exitExamBtn">退出考试</button>
+    </div>
+
+    <script>
+        // DOM元素
+        const addExamBtn = document.getElementById('addExamBtn');
+        const addExamModal = document.getElementById('addExamModal');
+        const cancelAddBtn = document.getElementById('cancelAddBtn');
+        const confirmAddBtn = document.getElementById('confirmAddBtn');
+        const examList = document.getElementById('examList');
+        const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const examInterface = document.getElementById('examInterface');
+        const exitExamBtn = document.getElementById('exitExamBtn');
+        const currentTimeEl = document.getElementById('currentTime');
+        const examInterfaceTitle = document.getElementById('examInterfaceTitle');
+        const examInterfaceCountdown = document.getElementById('examInterfaceCountdown');
+        const settingBtn = document.getElementById('settingBtn');
+        const settingModal = document.getElementById('settingModal');
+        const saveSettingBtn = document.getElementById('saveSettingBtn');
+        const cancelSettingBtn = document.getElementById('cancelSettingBtn');
+        const startSoundSelect = document.getElementById('startSound');
+        const endSoundSelect = document.getElementById('endSound');
+
+        // 从localStorage读取数据
+        function loadExams() {
+            const savedExams = localStorage.getItem('exams');
+            return savedExams ? JSON.parse(savedExams) : [];
+        }
+
+        function loadSettings() {
+            const savedSettings = localStorage.getItem('soundSettings');
+            return savedSettings ? JSON.parse(savedSettings) : { startSound: 'default', endSound: 'default' };
+        }
+
+        // 保存数据到localStorage
+        function saveExams(exams) {
+            localStorage.setItem('exams', JSON.stringify(exams));
+        }
+
+        function saveSettings(settings) {
+            localStorage.setItem('soundSettings', JSON.stringify(settings));
+        }
+
+        let exams = loadExams();
+        let soundSettings = loadSettings();
+        let currentDeleteId = null;
+        let currentExamId = null;
+        let hasExited = false;
+        let playedStartSound = new Set(); // 避免重复播放开始铃声
+        let playedEndSound = new Set();   // 避免重复播放结束铃声
+
+        // 初始化铃声选择框
+        startSoundSelect.value = soundSettings.startSound;
+        endSoundSelect.value = soundSettings.endSound;
+
+        // 播放铃声函数
+        function playSound(type) {
+            let soundUrl = '';
+            const soundType = type === 'start' ? soundSettings.startSound : soundSettings.endSound;
+            
+            switch(soundType) {
+                case 'beep':
+                    soundUrl = 'data:audio/wav;base64,UklGRigBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQBAAD';
+                    break;
+                case 'ring':
+                    soundUrl = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQBAAD';
+                    break;
+                default:
+                    soundUrl = 'data:audio/wav;base64,UklGRigBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQQBAAD';
+            }
+            
+            const audio = new Audio(soundUrl);
+            audio.play().catch(err => console.log('播放失败:', err));
+        }
+
+        // 更新当前时间
+        function updateCurrentTime() {
+            const now = new Date();
+            currentTimeEl.textContent = now.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+        setInterval(updateCurrentTime, 1000);
+        updateCurrentTime();
+
+        // 计算时间差
+        function getTimeDiff(start, end) {
+            const now = new Date();
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            
+            if (now < startDate) {
+                const diff = startDate - now;
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                return `距离开始还有 ${days}天${hours}时${minutes}分${seconds}秒`;
+            } else if (now >= startDate && now <= endDate) {
+                const diff = endDate - now;
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                return `距离结束还有 ${hours}时${minutes}分${seconds}秒`;
+            } else {
+                return '考试已结束';
+            }
+        }
+
+        // 获取考试状态
+        function getExamStatus(start, end) {
+            const now = new Date();
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            
+            if (now < startDate) return 'upcoming';
+            if (now >= startDate && now <= endDate) return 'ongoing';
+            return 'ended';
+        }
+
+        // 渲染考试列表
+        function renderExamList() {
+            examList.innerHTML = '';
+            exams.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+            
+            exams.forEach(exam => {
+                const status = getExamStatus(exam.startTime, exam.endTime);
+                const timeDiff = getTimeDiff(exam.startTime, exam.endTime);
+
+                const card = document.createElement('div');
+                card.className = 'exam-card';
+                card.dataset.id = exam.id;
+
+                let statusText = '';
+                switch(status) {
+                    case 'upcoming': statusText = '即将开始'; break;
+                    case 'ongoing': statusText = '正在进行'; break;
+                    case 'ended': statusText = '已结束'; break;
+                }
+
+                card.innerHTML = `
+                    <div class="exam-name">${exam.name}</div>
+                    <div class="exam-time">
+                        开始：${new Date(exam.startTime).toLocaleString()}<br>
+                        结束：${new Date(exam.endTime).toLocaleString()}
+                    </div>
+                    <div class="exam-status status-${status}">${statusText}</div>
+                    <div class="countdown">${timeDiff}</div>
+                    <button class="delete-btn" data-id="${exam.id}">删除</button>
+                `;
+
+                card.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('delete-btn')) return;
+                    currentExamId = exam.id;
+                    hasExited = false;
+                    const status = getExamStatus(exam.startTime, exam.endTime);
+                    
+                    if (status === 'upcoming') {
+                        examInterfaceTitle.textContent = `考试尚未开始`;
+                    } else if (status === 'ongoing') {
+                        examInterfaceTitle.textContent = `${exam.name} - 考试进行中`;
+                    } else {
+                        examInterfaceTitle.textContent = `${exam.name} - 考试已结束`;
+                    }
+                    examInterfaceCountdown.textContent = getTimeDiff(exam.startTime, exam.endTime);
+                    examInterface.classList.add('active');
+                });
+
+                examList.appendChild(card);
+            });
+
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    currentDeleteId = btn.dataset.id;
+                    deleteConfirmModal.classList.add('active');
+                });
+            });
+        }
+
+        // 检查考试状态并播放铃声
+        function checkExamSound() {
+            const now = new Date();
+            exams.forEach(exam => {
+                const startDate = new Date(exam.startTime);
+                const endDate = new Date(exam.endTime);
+
+                // 考试开始铃声：时间匹配且未播放过
+                if (now >= startDate && now <= new Date(startDate.getTime() + 1000) && !playedStartSound.has(exam.id)) {
+                    playSound('start');
+                    playedStartSound.add(exam.id);
+                }
+
+                // 考试结束铃声：时间匹配且未播放过
+                if (now >= endDate && now <= new Date(endDate.getTime() + 1000) && !playedEndSound.has(exam.id)) {
+                    playSound('end');
+                    playedEndSound.add(exam.id);
+                }
+            });
+        }
+
+        // 打开添加考试弹窗
+        addExamBtn.addEventListener('click', () => {
+            addExamModal.classList.add('active');
+        });
+
+        // 关闭添加考试弹窗
+        cancelAddBtn.addEventListener('click', () => {
+            addExamModal.classList.remove('active');
+            clearForm();
+        });
+
+        // 清空表单
+        function clearForm() {
+            document.getElementById('examName').value = '';
+            document.getElementById('startTime').value = '';
+            document.getElementById('endTime').value = '';
+        }
+
+        // 添加考试
+        confirmAddBtn.addEventListener('click', () => {
+            const name = document.getElementById('examName').value.trim();
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+
+            if (!name || !startTime || !endTime) {
+                alert('请填写完整信息');
+                return;
+            }
+
+            if (new Date(startTime) >= new Date(endTime)) {
+                alert('开始时间不能晚于结束时间');
+                return;
+            }
+
+            const exam = {
+                id: Date.now().toString(),
+                name,
+                startTime,
+                endTime
+            };
+
+            exams.push(exam);
+            saveExams(exams);
+            addExamModal.classList.remove('active');
+            clearForm();
+            renderExamList();
+        });
+
+        // 取消删除
+        cancelDeleteBtn.addEventListener('click', () => {
+            deleteConfirmModal.classList.remove('active');
+            currentDeleteId = null;
+        });
+
+        // 确认删除
+        confirmDeleteBtn.addEventListener('click', () => {
+            if (!currentDeleteId) return;
+            exams = exams.filter(exam => exam.id !== currentDeleteId);
+            saveExams(exams);
+            deleteConfirmModal.classList.remove('active');
+            currentDeleteId = null;
+            renderExamList();
+        });
+
+        // 退出考试
+        exitExamBtn.addEventListener('click', () => {
+            examInterface.classList.remove('active');
+            currentExamId = null;
+            hasExited = true;
+        });
+
+        // 自动检查考试状态
+        function checkExamAutoEnter() {
+            if (hasExited) return;
+            exams.forEach(exam => {
+                const now = new Date();
+                const startDate = new Date(exam.startTime);
+                const endDate = new Date(exam.endTime);
+                
+                if (now >= startDate && now <= endDate && currentExamId !== exam.id) {
+                    currentExamId = exam.id;
+                    examInterfaceTitle.textContent = `${exam.name} - 考试进行中`;
+                    examInterfaceCountdown.textContent = getTimeDiff(exam.startTime, exam.endTime);
+                    examInterface.classList.add('active');
+                }
+            });
+        }
+
+        // 铃声设置相关事件
+        settingBtn.addEventListener('click', () => {
+            settingModal.classList.add('active');
+        });
+
+        cancelSettingBtn.addEventListener('click', () => {
+            settingModal.classList.remove('active');
+        });
+
+        saveSettingBtn.addEventListener('click', () => {
+            const newSettings = {
+                startSound: startSoundSelect.value,
+                endSound: endSoundSelect.value
+            };
+            soundSettings = newSettings;
+            saveSettings(soundSettings);
+            settingModal.classList.remove('active');
+            alert('铃声设置已保存');
+        });
+
+        // 定时任务
+        setInterval(() => {
+            renderExamList();
+            checkExamAutoEnter();
+            checkExamSound();
+        }, 1000);
+
+        // 初始化
+        renderExamList();
+    </script>
+</body>
+</html>
