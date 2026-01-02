@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成绩分析助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans">
+    <!-- 顶部导航栏 -->
+    <nav class="bg-white shadow-md py-4 px-6 sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-blue-600">成绩分析助手</h1>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- 首页 -->
+        <div id="home-page" class="block">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex items-center space-x-2">
+                    <h2 class="text-xl font-semibold text-gray-800">我的考试</h2>
+                    <select id="sort-select" class="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                        <option value="subject">按学科排序</option>
+                        <option value="avg">按平均成绩排序</option>
+                        <option value="latest">按最新成绩时间排序</option>
+                    </select>
+                </div>
+                <div class="flex space-x-2">
+                    <button id="synthesize-btn" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-all">
+                        <i class="fa fa-object-group mr-2"></i><span id="synthesize-btn-text">综合考虑</span>
+                    </button>
+                    <button id="add-card-btn" class="bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg hover:bg-blue-700 transition-all">
+                        <i class="fa fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 成绩卡片将通过 JS 动态生成 -->
+            </div>
+            
+            <div class="mt-10">
+                <h2 class="text-xl font-semibold text-gray-800 mb-6">综合分析卡片</h2>
+                <div id="synthesize-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- 综合卡片将通过 JS 动态生成 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 详情页 (默认隐藏) -->
+        <div id="detail-page" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <button id="back-btn" class="text-blue-600 text-2xl">
+                    <i class="fa fa-arrow-left"></i>
+                </button>
+                <div class="flex space-x-2">
+                    <button id="export-data-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-all">
+                        <i class="fa fa-file-text-o mr-2"></i>导出数据
+                    </button>
+                    <button id="export-image-btn" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-all">
+                        <i class="fa fa-image mr-2"></i>导出图片
+                    </button>
+                </div>
+            </div>
+
+            <div id="export-container" class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h2 id="detail-title" class="text-2xl font-bold text-gray-800 mb-4">考试名称</h2>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-gray-500 text-sm">满分</p>
+                        <p id="detail-full-score" class="text-2xl font-semibold text-blue-600">100</p>
+                    </div>
+                    <div>
+                        <p class="text-gray-500 text-sm">最近一次成绩</p>
+                        <p id="detail-last-score" class="text-2xl font-semibold text-green-600">--</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="chart-container" class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <canvas id="score-chart" width="400" height="200"></canvas>
+            </div>
+
+            <div id="speed-container" class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <canvas id="speed-chart" width="400" height="200"></canvas>
+            </div>
+
+            <button id="add-score-btn" class="bg-blue-600 text-white w-full py-3 rounded-lg shadow-lg hover:bg-blue-700 transition-all text-lg font-medium">
+                <i class="fa fa-plus-circle mr-2"></i>录入新成绩
+            </button>
+        </div>
+
+        <!-- 综合详情页 (默认隐藏) -->
+        <div id="synthesize-detail-page" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <button id="synthesize-back-btn" class="text-blue-600 text-2xl">
+                    <i class="fa fa-arrow-left"></i>
+                </button>
+                <div class="flex space-x-2">
+                    <button id="synthesize-export-data-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-all">
+                        <i class="fa fa-file-text-o mr-2"></i>导出数据
+                    </button>
+                    <button id="synthesize-export-image-btn" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-all">
+                        <i class="fa fa-image mr-2"></i>导出图片
+                    </button>
+                </div>
+            </div>
+
+            <div id="synthesize-export-container" class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <!-- 修复：变量名拼写错误 -->
+                <h2 id="synthesize-detail-title" class="text-2xl font-bold text-gray-800 mb-4">综合分析名称</h2>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-4">正确率复式折线图</h3>
+                    <canvas id="accuracy-chart" width="400" height="200"></canvas>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-4">总分折线图</h3>
+                    <canvas id="total-score-chart" width="400" height="200"></canvas>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-4">单科增速复式条形图</h3>
+                    <canvas id="single-speed-bar-chart" width="400" height="200"></canvas>
+                </div>
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold mb-4">总分增速条形图</h3>
+                    <canvas id="total-speed-bar-chart" width="400" height="200"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h3 class="text-lg font-semibold mb-4">总分同比增长率条形图</h3>
+                <canvas id="total-ratio-bar-chart" width="400" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- 添加成绩弹窗 (默认隐藏) -->
+        <div id="add-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">添加考试</h3>
+                    <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">考试名称</label>
+                    <input type="text" id="modal-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="例如：期中考试">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">学科</label>
+                    <input type="text" id="modal-subject" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="例如：数学">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">满分</label>
+                    <input type="number" id="modal-full-score" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="100">
+                </div>
+                <button id="save-card-btn" class="bg-blue-600 text-white w-full py-2 rounded-lg hover:bg-blue-700 transition-all">保存</button>
+            </div>
+        </div>
+
+        <!-- 录入成绩弹窗 (默认隐藏) -->
+        <div id="score-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">录入成绩</h3>
+                    <button id="close-score-modal-btn" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">考试日期</label>
+                    <input type="date" id="score-date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">分数</label>
+                    <input type="number" id="score-value" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="输入分数">
+                </div>
+                <button id="save-score-btn" class="bg-blue-600 text-white w-full py-2 rounded-lg hover:bg-blue-700 transition-all">保存</button>
+            </div>
+        </div>
+
+        <!-- 综合命名弹窗 (默认隐藏) -->
+        <div id="synthesize-name-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-800">命名综合分析</h3>
+                    <button id="close-synthesize-name-modal-btn" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">综合分析名称</label>
+                    <input type="text" id="synthesize-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all" placeholder="例如：理科综合">
+                </div>
+                <button id="save-synthesize-btn" class="bg-blue-600 text-white w-full py-2 rounded-lg hover:bg-blue-700 transition-all">保存</button>
+            </div>
+        </div>
+
+        <!-- 底部导入区域 -->
+        <div class="mt-10 pt-6 border-t border-gray-300 text-center">
+            <p class="text-gray-500 text-sm mb-2">数据存储在浏览器本地，如需迁移请使用导入/导出功能</p>
+            <div class="flex justify-center space-x-4">
+                <button id="import-btn" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-all">
+                    <i class="fa fa-upload mr-2"></i>导入数据
+                </button>
+                <button id="export-all-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-all">
+                    <i class="fa fa-download mr-2"></i>导出全部数据
+                </button>
+            </div>
+            <input type="file" id="file-input" accept=".json" class="hidden" />
+        </div>
+    </div>
+
+    <script>
+        // 数据结构
+        let exams = [];
+        let synthesizeExams = [];
+        let currentExamId = null;
+        let currentSynthesizeId = null;
+        let isSelecting = false;
+        let selectedExamIds = [];
+        let chartInstances = {};
+
+        // DOM 元素
+        const homePage = document.getElementById('home-page');
+        const detailPage = document.getElementById('detail-page');
+        const synthesizeDetailPage = document.getElementById('synthesize-detail-page');
+        const cardsContainer = document.getElementById('cards-container');
+        const synthesizeCardsContainer = document.getElementById('synthesize-cards-container');
+        const addCardBtn = document.getElementById('add-card-btn');
+        const addModal = document.getElementById('add-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const saveCardBtn = document.getElementById('save-card-btn');
+        const modalName = document.getElementById('modal-name');
+        const modalSubject = document.getElementById('modal-subject');
+        const modalFullScore = document.getElementById('modal-full-score');
+        const backBtn = document.getElementById('back-btn');
+        const synthesizeBackBtn = document.getElementById('synthesize-back-btn');
+        const detailTitle = document.getElementById('detail-title');
+        const detailFullScore = document.getElementById('detail-full-score');
+        const detailLastScore = document.getElementById('detail-last-score');
+        const addScoreBtn = document.getElementById('add-score-btn');
+        const scoreModal = document.getElementById('score-modal');
+        const closeScoreModalBtn = document.getElementById('close-score-modal-btn');
+        const saveScoreBtn = document.getElementById('save-score-btn');
+        const scoreDate = document.getElementById('score-date');
+        const scoreValue = document.getElementById('score-value');
+        const exportDataBtn = document.getElementById('export-data-btn');
+        const exportImageBtn = document.getElementById('export-image-btn');
+        const synthesizeExportDataBtn = document.getElementById('synthesize-export-data-btn');
+        const synthesizeExportImageBtn = document.getElementById('synthesize-export-image-btn');
+        const synthesizeBtn = document.getElementById('synthesize-btn');
+        const synthesizeBtnText = document.getElementById('synthesize-btn-text');
+        const sortSelect = document.getElementById('sort-select');
+        const synthesizeNameModal = document.getElementById('synthesize-name-modal');
+        const closeSynthesizeNameModalBtn = document.getElementById('close-synthesize-name-modal-btn');
+        const saveSynthesizeBtn = document.getElementById('save-synthesize-btn');
+        const synthesizeName = document.getElementById('synthesize-name');
+        const importBtn = document.getElementById('import-btn');
+        const exportAllBtn = document.getElementById('export-all-btn');
+        const fileInput = document.getElementById('file-input');
+        // 修复：添加综合详情标题 DOM 元素引用
+        const synthesizeDetailTitle = document.getElementById('synthesize-detail-title');
+
+        // 初始化
+        async function init() {
+            await loadData();
+            renderCards();
+            renderSynthesizeCards();
+        }
+
+        // 保存数据到 localStorage
+        function saveData() {
+            localStorage.setItem('examData', JSON.stringify(exams));
+            localStorage.setItem('synthesizeExams', JSON.stringify(synthesizeExams));
+            console.log('数据已保存到本地');
+        }
+
+        // 从 localStorage 加载数据
+        async function loadData() {
+            const examData = localStorage.getItem('examData');
+            const synthesizeData = localStorage.getItem('synthesizeExams');
+            if (examData) {
+                exams = JSON.parse(examData);
+            } else {
+                exams = [];
+            }
+            if (synthesizeData) {
+                synthesizeExams = JSON.parse(synthesizeData);
+            } else {
+                synthesizeExams = [];
+            }
+        }
+
+        // 排序卡片
+        function sortCards(type) {
+            switch (type) {
+                case 'subject':
+                    exams.sort((a, b) => a.subject.localeCompare(b.subject));
+                    break;
+                case 'avg':
+                    exams.sort((a, b) => {
+                        const avgA = a.scores.length > 0 ? a.scores.reduce((sum, s) => sum + s.value, 0) / a.scores.length : 0;
+                        const avgB = b.scores.length > 0 ? b.scores.reduce((sum, s) => sum + s.value, 0) / b.scores.length : 0;
+                        return avgB - avgA;
+                    });
+                    break;
+                case 'latest':
+                    exams.sort((a, b) => {
+                        const dateA = a.scores.length > 0 ? new Date(a.scores[a.scores.length - 1].date).getTime() : 0;
+                        const dateB = b.scores.length > 0 ? new Date(b.scores[b.scores.length - 1].date).getTime() : 0;
+                        return dateB - dateA;
+                    });
+                    break;
+            }
+        }
+
+        // 渲染卡片
+        function renderCards() {
+            cardsContainer.innerHTML = '';
+            if (exams.length === 0) {
+                cardsContainer.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400">暂无考试数据，请点击右上角 "+" 添加</div>';
+                return;
+            }
+            exams.forEach(exam => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-1 relative';
+                if (isSelecting) {
+                    card.classList.add('border-2', selectedExamIds.includes(exam.id) ? 'border-blue-500' : 'border-transparent');
+                }
+                const avgScore = exam.scores.length > 0 ? (exam.scores.reduce((sum, s) => sum + s.value, 0) / exam.scores.length).toFixed(1) : '0';
+                const latestDate = exam.scores.length > 0 ? exam.scores[exam.scores.length - 1].date : '无';
+                card.innerHTML = `
+                    ${isSelecting ? `<div class="absolute top-4 right-4 w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center ${selectedExamIds.includes(exam.id) ? 'bg-blue-500 border-blue-500 text-white' : 'bg-white text-transparent'}" data-id="${exam.id}">✓</div>` : ''}
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">${exam.name}</h3>
+                    <p class="text-gray-500 text-sm mb-2">学科: ${exam.subject}</p>
+                    <p class="text-gray-500 text-sm mb-4">满分: ${exam.fullScore}</p>
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <span class="text-sm font-medium text-blue-600">平均分: ${avgScore}</span>
+                            <br>
+                            <span class="text-xs text-gray-400">最新: ${latestDate}</span>
+                        </div>
+                        <i class="fa fa-chevron-right text-gray-300"></i>
+                    </div>
+                `;
+                if (isSelecting) {
+                    card.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const checkbox = card.querySelector('.rounded-full');
+                        const id = parseInt(checkbox.dataset.id);
+                        if (selectedExamIds.includes(id)) {
+                            selectedExamIds = selectedExamIds.filter(item => item !== id);
+                            checkbox.className = 'absolute top-4 right-4 w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center bg-white text-transparent';
+                            card.classList.remove('border-blue-500');
+                            card.classList.add('border-transparent');
+                        } else {
+                            selectedExamIds.push(id);
+                            checkbox.className = 'absolute top-4 right-4 w-6 h-6 rounded-full border-2 border-blue-500 flex items-center justify-center bg-blue-500 text-white';
+                            card.classList.remove('border-transparent');
+                            card.classList.add('border-blue-500');
+                        }
+                    });
+                } else {
+                    card.addEventListener('click', () => goToDetail(exam.id));
+                }
+                cardsContainer.appendChild(card);
+            });
+        }
+
+        // 渲染综合卡片（核心修复：确保点击事件正确绑定）
+        function renderSynthesizeCards() {
+            synthesizeCardsContainer.innerHTML = '';
+            if (synthesizeExams.length === 0) {
+                synthesizeCardsContainer.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400">暂无综合分析卡片，请点击右上角 "综合考虑" 创建</div>';
+                return;
+            }
+            synthesizeExams.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl shadow-md p-6 hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-1 border border-purple-100 relative';
+                card.innerHTML = `
+                    <h3 class="text-lg font-bold text-purple-800 mb-2">${item.name}</h3>
+                    <p class="text-gray-500 text-sm mb-4">包含 ${item.ids.length} 个学科</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-medium text-purple-600">综合分析</span>
+                        <i class="fa fa-chevron-right text-purple-300"></i>
+                    </div>
+                `;
+                // 修复：确保每次渲染都绑定点击事件
+                card.addEventListener('click', () => {
+                    console.log('综合卡片点击', item.id);
+                    goToSynthesizeDetail(item.id);
+                });
+                synthesizeCardsContainer.appendChild(card);
+            });
+        }
+
+        // 进入详情页
+        function goToDetail(id) {
+            const exam = exams.find(e => e.id === id);
+            if (!exam) return;
+            currentExamId = id;
+            detailTitle.textContent = exam.name;
+            detailFullScore.textContent = exam.fullScore;
+            detailLastScore.textContent = exam.scores.length > 0 ? exam.scores[exam.scores.length - 1].value : '--';
+            
+            renderCharts(exam.scores, exam.fullScore);
+            
+            homePage.classList.add('hidden');
+            detailPage.classList.remove('hidden');
+            synthesizeDetailPage.classList.add('hidden');
+        }
+
+        // 进入综合详情页（修复：确保变量引用正确）
+        function goToSynthesizeDetail(id) {
+            const item = synthesizeExams.find(e => e.id === id);
+            if (!item) {
+                console.error('未找到综合分析项', id);
+                return;
+            }
+            currentSynthesizeId = id;
+            synthesizeDetailTitle.textContent = item.name;
+            
+            renderSynthesizeCharts(item.ids);
+            
+            homePage.classList.add('hidden');
+            detailPage.classList.add('hidden');
+            synthesizeDetailPage.classList.remove('hidden');
+        }
+
+        // 销毁所有图表
+        function destroyCharts() {
+            Object.keys(chartInstances).forEach(key => {
+                if (chartInstances[key]) {
+                    chartInstances[key].destroy();
+                }
+            });
+            chartInstances = {};
+        }
+
+        // 生成普通图表
+        function renderCharts(scores, fullScore) {
+            destroyCharts();
+            if (scores.length === 0) return;
+            
+            const labels = scores.map(s => s.date);
+            const data = scores.map(s => s.value);
+            
+            // 成绩折线图
+            const scoreCtx = document.getElementById('score-chart').getContext('2d');
+            chartInstances.score = new Chart(scoreCtx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '成绩',
+                        data: data,
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { title: { display: true, text: '成绩变化趋势' } },
+                    scales: { y: { beginAtZero: true, max: fullScore } }
+                }
+            });
+            
+            // 增速折线图
+            const speedCtx = document.getElementById('speed-chart').getContext('2d');
+            const speedData = [];
+            for (let i = 1; i < data.length; i++) speedData.push(data[i] - data[i - 1]);
+            chartInstances.speed = new Chart(speedCtx, {
+                type: 'line',
+                data: {
+                    labels: labels.slice(1),
+                    datasets: [{
+                        label: '分数变化',
+                        data: speedData,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { title: { display: true, text: '分数增速分析' } }
+                }
+            });
+        }
+
+        // 生成综合图表
+        function renderSynthesizeCharts(ids) {
+            destroyCharts();
+            const selectedExams = exams.filter(e => ids.includes(e.id));
+            if (selectedExams.length === 0) return;
+
+            // 获取所有考试的日期集合，并去重、排序
+            const allDates = Array.from(new Set(selectedExams.flatMap(e => e.scores.map(s => s.date)))).sort();
+            if (allDates.length === 0) return;
+
+            // 构建数据结构
+            const datasets = selectedExams.map(exam => {
+                const data = allDates.map(date => {
+                    const score = exam.scores.find(s => s.date === date);
+                    return score ? score.value : null;
+                });
+                return {
+                    id: exam.id,
+                    name: exam.name,
+                    subject: exam.subject,
+                    fullScore: exam.fullScore,
+                    data: data,
+                    accuracy: data.map(v => v !== null ? (v / exam.fullScore * 100) : null)
+                };
+            });
+
+            // 1. 正确率复式折线图
+            const accuracyCtx = document.getElementById('accuracy-chart').getContext('2d');
+            const accuracyDatasets = datasets.map(ds => ({
+                label: ds.subject,
+                data: ds.accuracy,
+                borderColor: getRandomColor(ds.id),
+                backgroundColor: getRandomColor(ds.id, 0.1),
+                tension: 0.4
+            }));
+            chartInstances.accuracy = new Chart(accuracyCtx, {
+                type: 'line',
+                data: { labels: allDates, datasets: accuracyDatasets },
+                options: { responsive: true, plugins: { title: { display: true, text: '正确率 (%)' } }, scales: { y: { min: 0, max: 100 } } }
+            });
+
+            // 2. 总分折线图
+            const totalScoreCtx = document.getElementById('total-score-chart').getContext('2d');
+            const totalData = allDates.map(date => {
+                let sum = 0;
+                datasets.forEach(ds => {
+                    const val = ds.data[allDates.indexOf(date)];
+                    if (val !== null) sum += val;
+                });
+                return sum;
+            });
+            chartInstances.totalScore = new Chart(totalScoreCtx, {
+                type: 'line',
+                data: {
+                    labels: allDates,
+                    datasets: [{
+                        label: '总分',
+                        data: totalData,
+                        borderColor: '#1f2937',
+                        backgroundColor: 'rgba(31, 41, 55, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: { responsive: true, plugins: { title: { display: true, text: '总分变化' } } }
+            });
+
+            // 3. 单科增速复式条形图 (计算相邻日期的差值)
+            const singleSpeedCtx = document.getElementById('single-speed-bar-chart').getContext('2d');
+            const speedLabels = allDates.slice(1);
+            const speedDatasets = datasets.map(ds => {
+                const speedData = [];
+                for (let i = 1; i < allDates.length; i++) {
+                    const prev = ds.data[i - 1];
+                    const curr = ds.data[i];
+                    speedData.push((curr !== null && prev !== null) ? (curr - prev) : null);
+                }
+                return {
+                    label: ds.subject,
+                    data: speedData,
+                    backgroundColor: getRandomColor(ds.id)
+                };
+            });
+            chartInstances.singleSpeed = new Chart(singleSpeedCtx, {
+                type: 'bar',
+                data: { labels: speedLabels, datasets: speedDatasets },
+                options: { responsive: true, plugins: { title: { display: true, text: '单科分数变化' } }, scales: { x: { stacked: false }, y: { stacked: false } } }
+            });
+
+            // 4. 总分增速条形图
+            const totalSpeedCtx = document.getElementById('total-speed-bar-chart').getContext('2d');
+            const totalSpeedData = [];
+            for (let i = 1; i < totalData.length; i++) {
+                totalSpeedData.push(totalData[i] - totalData[i - 1]);
+            }
+            chartInstances.totalSpeed = new Chart(totalSpeedCtx, {
+                type: 'bar',
+                data: {
+                    labels: speedLabels,
+                    datasets: [{
+                        label: '总分变化',
+                        data: totalSpeedData,
+                        backgroundColor: '#1f2937'
+                    }]
+                },
+                options: { responsive: true, plugins: { title: { display: true, text: '总分增速' } } }
+            });
+
+            // 5. 总分同比增长率条形图
+            const totalRatioCtx = document.getElementById('total-ratio-bar-chart').getContext('2d');
+            const totalRatioData = [];
+            for (let i = 1; i < totalData.length; i++) {
+                if (totalData[i - 1] === 0) totalRatioData.push(0);
+                else totalRatioData.push(((totalData[i] - totalData[i - 1]) / totalData[i - 1] * 100).toFixed(2));
+            }
+            chartInstances.totalRatio = new Chart(totalRatioCtx, {
+                type: 'bar',
+                data: {
+                    labels: speedLabels,
+                    datasets: [{
+                        label: '同比增长率 (%)',
+                        data: totalRatioData,
+                        backgroundColor: totalRatioData.map(v => v >= 0 ? '#10b981' : '#ef4444')
+                    }]
+                },
+                options: { responsive: true, plugins: { title: { display: true, text: '总分同比增长率' } } }
+            });
+        }
+
+        // 辅助函数：生成随机颜色
+        function getRandomColor(id, alpha = 1) {
+            const hash = id.toString().split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+            const r = (hash & 0xFF0000) >> 16;
+            const g = (hash & 0x00FF00) >> 8;
+            const b = hash & 0x0000FF;
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        // 事件监听
+        addCardBtn.addEventListener('click', () => addModal.classList.remove('hidden'));
+        closeModalBtn.addEventListener('click', () => addModal.classList.add('hidden'));
+        backBtn.addEventListener('click', () => {
+            detailPage.classList.add('hidden');
+            homePage.classList.remove('hidden');
+        });
+        synthesizeBackBtn.addEventListener('click', () => {
+            synthesizeDetailPage.classList.add('hidden');
+            homePage.classList.remove('hidden');
+        });
+        addScoreBtn.addEventListener('click', () => scoreModal.classList.remove('hidden'));
+        closeScoreModalBtn.addEventListener('click', () => scoreModal.classList.add('hidden'));
+        closeSynthesizeNameModalBtn.addEventListener('click', () => synthesizeNameModal.classList.add('hidden'));
+
+        // 排序选择
+        sortSelect.addEventListener('change', (e) => {
+            sortCards(e.target.value);
+            renderCards();
+        });
+
+        // 综合考虑按钮
+        synthesizeBtn.addEventListener('click', () => {
+            if (isSelecting) {
+                if (selectedExamIds.length > 0) {
+                    synthesizeNameModal.classList.remove('hidden');
+                } else {
+                    isSelecting = false;
+                    selectedExamIds = [];
+                    synthesizeBtnText.textContent = '综合考虑';
+                    renderCards();
+                }
+            } else {
+                isSelecting = true;
+                selectedExamIds = [];
+                synthesizeBtnText.textContent = '完成';
+                renderCards();
+            }
+        });
+
+        // 保存综合分析
+        saveSynthesizeBtn.addEventListener('click', () => {
+            const name = synthesizeName.value.trim();
+            if (!name || selectedExamIds.length === 0) return;
+            synthesizeExams.push({
+                id: Date.now(),
+                name: name,
+                ids: [...selectedExamIds]
+            });
+            synthesizeName.value = '';
+            synthesizeNameModal.classList.add('hidden');
+            isSelecting = false;
+            selectedExamIds = [];
+            synthesizeBtnText.textContent = '综合考虑';
+            saveData();
+            renderCards();
+            renderSynthesizeCards();
+        });
+
+        // 保存考试
+        saveCardBtn.addEventListener('click', () => {
+            const name = modalName.value.trim();
+            const subject = modalSubject.value.trim();
+            const fullScore = parseInt(modalFullScore.value);
+            if (!name || !subject || isNaN(fullScore) || fullScore <= 0) return;
+            
+            exams.push({
+                id: Date.now(),
+                name,
+                subject,
+                fullScore,
+                scores: []
+            });
+            modalName.value = '';
+            modalSubject.value = '';
+            modalFullScore.value = '';
+            addModal.classList.add('hidden');
+            saveData();
+            renderCards();
+        });
+
+        // 保存成绩
+        saveScoreBtn.addEventListener('click', () => {
+            const date = scoreDate.value;
+            const value = parseInt(scoreValue.value);
+            if (!date || isNaN(value) || value < 0) return;
+            
+            const exam = exams.find(e => e.id === currentExamId);
+            if (!exam) return;
+            
+            exam.scores.push({ date, value });
+            exam.scores.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            scoreDate.value = '';
+            scoreValue.value = '';
+            scoreModal.classList.add('hidden');
+            saveData();
+            goToDetail(currentExamId);
+        });
+
+        // 导出当前考试数据
+        exportDataBtn.addEventListener('click', () => {
+            const exam = exams.find(e => e.id === currentExamId);
+            if (!exam) return;
+            
+            const dataStr = JSON.stringify(exam, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${exam.name}_数据.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // 导出综合数据
+        synthesizeExportDataBtn.addEventListener('click', () => {
+            const item = synthesizeExams.find(e => e.id === currentSynthesizeId);
+            if (!item) return;
+            const data = {
+                name: item.name,
+                exams: exams.filter(e => item.ids.includes(e.id))
+            };
+            const dataStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${item.name}_综合数据.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // 导出图片
+        exportImageBtn.addEventListener('click', () => {
+            const exam = exams.find(e => e.id === currentExamId);
+            if (!exam) return;
+
+            const tempDiv = document.createElement('div');
+            tempDiv.style.width = '100%';
+            tempDiv.style.maxWidth = '800px';
+            tempDiv.style.margin = '0 auto';
+            tempDiv.style.backgroundColor = '#fff';
+            tempDiv.style.padding = '20px';
+            tempDiv.style.borderRadius = '12px';
+            tempDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+            
+            const title = document.createElement('h2');
+            title.textContent = exam.name;
+            title.style.textAlign = 'center';
+            title.style.marginBottom = '20px';
+            tempDiv.appendChild(title);
+            
+            const infoDiv = document.createElement('div');
+            infoDiv.style.display = 'flex';
+            infoDiv.style.justifyContent = 'space-around';
+            infoDiv.style.marginBottom = '20px';
+            infoDiv.innerHTML = `
+                <div><p>满分: ${exam.fullScore}</p></div>
+                <div><p>最近一次成绩: ${exam.scores.length > 0 ? exam.scores[exam.scores.length - 1].value : '--'}</p></div>
+            `;
+            tempDiv.appendChild(infoDiv);
+            
+            const scoreCanvas = document.getElementById('score-chart');
+            const speedCanvas = document.getElementById('speed-chart');
+            tempDiv.appendChild(scoreCanvas.cloneNode(true));
+            tempDiv.appendChild(speedCanvas.cloneNode(true));
+            
+            document.body.appendChild(tempDiv);
+            
+            html2canvas(tempDiv, { scale: 2 }).then(canvas => {
+                document.body.removeChild(tempDiv);
+                const imgData = canvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.href = imgData;
+                a.download = `${exam.name}_分析图.png`;
+                a.click();
+            });
+        });
+
+        // 导出综合图片
+        synthesizeExportImageBtn.addEventListener('click', () => {
+            const item = synthesizeExams.find(e => e.id === currentSynthesizeId);
+            if (!item) return;
+
+            const tempDiv = document.createElement('div');
+            tempDiv.style.width = '100%';
+            tempDiv.style.maxWidth = '1000px';
+            tempDiv.style.margin = '0 auto';
+            tempDiv.style.backgroundColor = '#fff';
+            tempDiv.style.padding = '20px';
+            tempDiv.style.borderRadius = '12px';
+            tempDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+            
+            const title = document.createElement('h2');
+            title.textContent = item.name;
+            title.style.textAlign = 'center';
+            title.style.marginBottom = '20px';
+            tempDiv.appendChild(title);
+            
+            const charts = [
+                document.getElementById('accuracy-chart'),
+                document.getElementById('total-score-chart'),
+                document.getElementById('single-speed-bar-chart'),
+                document.getElementById('total-speed-bar-chart'),
+                document.getElementById('total-ratio-bar-chart')
+            ];
+            charts.forEach(canvas => {
+                if (canvas) {
+                    const clone = canvas.cloneNode(true);
+                    clone.style.width = '100%';
+                    clone.style.height = 'auto';
+                    clone.style.marginBottom = '20px';
+                    tempDiv.appendChild(clone);
+                }
+            });
+            
+            document.body.appendChild(tempDiv);
+            
+            html2canvas(tempDiv, { scale: 2 }).then(canvas => {
+                document.body.removeChild(tempDiv);
+                const imgData = canvas.toDataURL('image/png');
+                const a = document.createElement('a');
+                a.href = imgData;
+                a.download = `${item.name}_综合分析图.png`;
+                a.click();
+            });
+        });
+
+        // 导出全部数据
+        exportAllBtn.addEventListener('click', () => {
+            const data = { exams, synthesizeExams };
+            const dataStr = JSON.stringify(data, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = '全部考试数据.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        // 导入数据
+        importBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const importedData = JSON.parse(event.target.result);
+                    if (importedData.exams) exams = importedData.exams;
+                    if (importedData.synthesizeExams) synthesizeExams = importedData.synthesizeExams;
+                    saveData();
+                    renderCards();
+                    renderSynthesizeCards();
+                    alert('数据导入成功！');
+                } catch (err) {
+                    alert('导入失败，请选择有效的 JSON 文件');
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        init();
+    </script>
+</body>
+</html>

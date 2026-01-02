@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LYS App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* iOS控制中心暗色调模糊背景 */
+        body {
+            background: url('https://picsum.photos/seed/iosbg/1920/1080') center/cover fixed;
+            min-height: 100vh;
+            padding: 24px;
+            overflow-x: hidden;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top:0;left:0;width:100%;height:100%;
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: -1;
+        }
+
+        /* ✅ 宽版大尺寸LYS栏目 占满大部分宽度 */
+        .header {
+            position: relative;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            color: #ffffff;
+            padding: 28px 32px;
+            border-radius: 24px;
+            margin-bottom: 40px;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.3);
+            overflow: hidden;
+            width: calc(100% - 48px); /* 宽版适配 */
+            max-width: 1200px;
+            /* 文字滑入动画容器 */
+            overflow: hidden;
+        }
+        /* ✅ LYS文字左侧滑入+回弹入场 */
+        .header h1 {
+            font-size: 42px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            transform: translateX(-100%);
+            animation: textSlideIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.4) 0.3s forwards;
+        }
+        .header p {
+            font-size: 18px;
+            opacity: 0.8;
+            margin-top: 8px;
+            transform: translateX(-100%);
+            animation: textSlideIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.4) 0.5s forwards;
+        }
+        /* 文字滑入回弹动画 */
+        @keyframes textSlideIn {
+            0% { transform: translateX(-100%); opacity: 0; }
+            80% { transform: translateX(10px); opacity: 1; }
+            100% { transform: translateX(0); opacity: 1; }
+        }
+
+        /* 卡片容器 */
+        .app-container {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            padding: 0 8px;
+        }
+
+        /* ✅ 核心：真实物理拉扯变形+正向涨大回弹+完整动画执行 */
+        .app-card {
+            width: 180px;
+            height: 220px;
+            border-radius: 28px;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            /* iOS控制中心磨砂玻璃 */
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            /* ✅ 正向变形基准 确保涨大/回弹方向正 */
+            transform: scale(1) translate(0,0) rotate(0deg);
+            transform-origin: center center;
+            /* ✅ 开启硬件加速 保证动画完整执行 */
+            will-change: transform;
+            transform-style: preserve-3d;
+            /* 固定动画时长 短按也会完整执行 */
+            transition: transform 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.4), 
+                        background 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.4),
+                        box-shadow 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.4);
+        }
+        /* ✅ 正向涨大 纯缩放无偏移/倾斜 保证方向正 */
+        .app-card.tap {
+            transform: scale(1.12) translate(0,0) rotate(0deg); /* 纯正向涨大 */
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.18);
+        }
+        /* ✅ 真实拉扯变形：跟随鼠标/触摸的弹性拉伸+形变 */
+        .app-card.drag {
+            transform: scale(1.15) translate(var(--drag-x, 0px), var(--drag-y, 0px)) skew(var(--skew-x, 0deg), var(--skew-y, 0deg));
+            transition: transform 0.15s cubic-bezier(0.215, 0.61, 0.355, 1); /* 快速响应拉扯 */
+        }
+
+        /* 卡片图片区 跟随真实变形 */
+        .card-img {
+            width: 100%;
+            height: 70%;
+            overflow: hidden;
+            position: relative;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.4);
+        }
+        .card-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.9;
+            transition: transform 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.4);
+        }
+        .app-card.tap .card-img img {
+            transform: scale(1.08); /* 正向放大 匹配卡片涨大 */
+        }
+        .app-card.drag .card-img img {
+            transform: scale(1.1) skew(calc(var(--skew-x, 0deg) * -1), calc(var(--skew-y, 0deg) * -1)); /* 反向拉伸 增强真实感 */
+        }
+
+        /* 卡片文字区 贴合变形 */
+        .card-text {
+            width: 100%;
+            height: 30%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .card-text h2 {
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 500;
+            text-align: center;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            letter-spacing: 0.3px;
+            transition: transform 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.4);
+        }
+        .app-card.tap .card-text h2 {
+            transform: scale(1.05);
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .app-card {
+                width: 150px;
+                height: 190px;
+                border-radius: 24px;
+            }
+            .header {
+                padding: 24px 28px;
+                border-radius: 20px;
+                width: calc(100% - 40px);
+            }
+            .header h1 {
+                font-size: 36px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>LYS</h1>
+        <p>产品中心</p>
+    </div>
+
+    <div class="app-container">
+        <!-- 学习app 跳转链接 -->
+        <div class="app-card" data-link="study_index.html">
+            <div class="card-img">
+                <img src="https://picsum.photos/seed/studyiOS/400/600" alt="学习app">
+            </div>
+            <div class="card-text">
+                <h2>学习app</h2>
+            </div>
+        </div>
+
+        <!-- 模拟app 跳转链接 -->
+        <div class="app-card" data-link="simu_index.html">
+            <div class="card-img">
+                <img src="https://picsum.photos/seed/simulateiOS/400/600" alt="模拟app">
+            </div>
+            <div class="card-text">
+                <h2>模拟app</h2>
+            </div>
+        </div>
+
+        <!-- easy work 跳转链接 -->
+        <div class="app-card" data-link="charts.html">
+            <div class="card-img">
+                <img src="https://picsum.photos/seed/easyworkiOS/400/600" alt="easy work">
+            </div>
+            <div class="card-text">
+                <h2>easy work</h2>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ✅ 核心逻辑：真实拉扯变形+正向涨大回弹+短按完整动画+点击跳转
+        const cards = document.querySelectorAll('.app-card');
+        let activeCard = null;
+        let startX = 0;
+        let startY = 0;
+        let tapTimer = null;
+
+        cards.forEach(card => {
+            // ✅ 鼠标按压触发正向涨大 短按也执行完整动画
+            card.addEventListener('mousedown', (e) => {
+                activeCard = card;
+                startX = e.clientX;
+                startY = e.clientY;
+                // 立即添加涨大类 触发动画
+                card.classList.add('tap');
+                // 清除之前的定时器 确保动画完整
+                clearTimeout(tapTimer);
+            });
+
+            // ✅ 鼠标拉扯实现真实变形
+            document.addEventListener('mousemove', (e) => {
+                if (!activeCard) return;
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                // 计算拉扯的偏移和倾斜角度
+                const skewX = dx * 0.1;
+                const skewY = dy * -0.1;
+                // 设置CSS变量 驱动变形
+                activeCard.style.setProperty('--drag-x', `${dx * 0.2}px`);
+                activeCard.style.setProperty('--drag-y', `${dy * 0.2}px`);
+                activeCard.style.setProperty('--skew-x', `${skewX}deg`);
+                activeCard.style.setProperty('--skew-y', `${skewY}deg`);
+                // 添加拉扯类
+                activeCard.classList.add('drag');
+            });
+
+            // ✅ 鼠标松开触发回弹 保证动画完整执行
+            document.addEventListener('mouseup', () => {
+                if (!activeCard) return;
+                // 移除拉扯类 恢复正向回弹
+                activeCard.classList.remove('drag');
+                // 延迟移除涨大类 确保动画完整执行（即使短按）
+                tapTimer = setTimeout(() => {
+                    activeCard.classList.remove('tap');
+                    activeCard = null;
+                }, 700); // 匹配CSS动画时长
+                // 重置CSS变量
+                activeCard.style.setProperty('--drag-x', '0px');
+                activeCard.style.setProperty('--drag-y', '0px');
+                activeCard.style.setProperty('--skew-x', '0deg');
+                activeCard.style.setProperty('--skew-y', '0deg');
+            });
+
+            // ✅ 移动端触摸适配
+            card.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                activeCard = card;
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                card.classList.add('tap');
+                clearTimeout(tapTimer);
+            }, { passive: false });
+
+            document.addEventListener('touchmove', (e) => {
+                if (!activeCard) return;
+                const touch = e.touches[0];
+                const dx = touch.clientX - startX;
+                const dy = touch.clientY - startY;
+                const skewX = dx * 0.1;
+                const skewY = dy * -0.1;
+                activeCard.style.setProperty('--drag-x', `${dx * 0.2}px`);
+                activeCard.style.setProperty('--drag-y', `${dy * 0.2}px`);
+                activeCard.style.setProperty('--skew-x', `${skewX}deg`);
+                activeCard.style.setProperty('--skew-y', `${skewY}deg`);
+                activeCard.classList.add('drag');
+            }, { passive: false });
+
+            document.addEventListener('touchend', () => {
+                if (!activeCard) return;
+                activeCard.classList.remove('drag');
+                tapTimer = setTimeout(() => {
+                    activeCard.classList.remove('tap');
+                    activeCard = null;
+                }, 700);
+                activeCard.style.setProperty('--drag-x', '0px');
+                activeCard.style.setProperty('--drag-y', '0px');
+                activeCard.style.setProperty('--skew-x', '0deg');
+                activeCard.style.setProperty('--skew-y', '0deg');
+            });
+
+            // ✅ 点击跳转指定链接
+            card.addEventListener('click', () => {
+                const link = card.getAttribute('data-link');
+                window.open(link, '_blank');
+            });
+        });
+    </script>
+</body>
+</html>
