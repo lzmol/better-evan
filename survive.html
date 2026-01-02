@@ -1,0 +1,2339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>芒果生存模拟器3D增强版</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f8ff;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .simulation-area {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        #gameContainer {
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            background-color: #e8f5e9;
+            flex: 1;
+            min-height: 500px;
+            min-width: 300px;
+            position: relative;
+            overflow: hidden;
+        }
+        #gameCanvas {
+            width: 100%;
+            height: 100%;
+        }
+        .control-panel, .custom-character-panel {
+            width: 300px;
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            flex-shrink: 0;
+        }
+        .panel-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .panel-section:last-child {
+            border-bottom: none;
+        }
+        h2, h3 {
+            color: #2e7d32;
+            margin-top: 0;
+        }
+        .param-group {
+            margin-bottom: 12px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #388E3C;
+        }
+        button.stop-btn {
+            background-color: #f44336;
+        }
+        button.stop-btn:hover {
+            background-color: #d32f2f;
+        }
+        .stats {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .stat-item {
+            padding: 8px;
+            border-radius: 4px;
+            background-color: #f1f8e9;
+        }
+        .stat-label {
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        .character-cards {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+        .character-card {
+            background-color: #fff;
+            border: 2px solid #81C784;
+            border-radius: 8px;
+            padding: 10px;
+            min-width: 150px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .character-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .character-card.selected {
+            border-color: #2E7D32;
+            background-color: #E8F5E9;
+        }
+        .character-name {
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 5px;
+            color: #2e7d32;
+        }
+        .character-info {
+            font-size: 12px;
+            margin-bottom: 3px;
+        }
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        .chart-wrapper {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        canvas {
+            width: 100%;
+            height: 250px;
+        }
+        .time-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            z-index: 100;
+        }
+        .sun-moon {
+            position: absolute;
+            top: 40px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            z-index: 100;
+        }
+        .energy-bar-container {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 8px;
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 4px;
+            z-index: 10;
+        }
+        .energy-bar {
+            height: 100%;
+            background-color: #4CAF50;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        .energy-bar.low {
+            background-color: #FF9800;
+        }
+        .energy-bar.critical {
+            background-color: #F44336;
+            animation: flash 1s infinite alternate;
+        }
+        @keyframes flash {
+            0% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+        .export-controls {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .dialog {
+            position: absolute;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 5px 10px;
+            font-size: 12px;
+            max-width: 120px;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            animation: fadeIn 0.3s forwards;
+        }
+        .dialog::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 10px 10px 0;
+            border-style: solid;
+            border-color: white transparent transparent;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>芒果生存模拟器3D增强版</h1>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <span class="stat-label">当前居民数:</span> <span id="currentPopulation">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">芒果数量:</span> <span id="mangoCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">房屋数量:</span> <span id="houseCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">被吃掉的居民:</span> <span id="eatenCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">能量耗尽死亡:</span> <span id="energyDeathCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">夜间冻死:</span> <span id="nightDeathCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">成功逃脱:</span> <span id="escapeCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">新生儿数量:</span> <span id="birthCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">基因突变数:</span> <span id="mutationCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">模拟时间:</span> <span id="simulationTime">0 天</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">当前时段:</span> <span id="timeOfDay">白天</span>
+            </div>
+        </div>
+        
+        <div class="simulation-area">
+            <div id="gameContainer">
+                <canvas id="gameCanvas"></canvas>
+                <div class="time-indicator" id="timeIndicator">白天</div>
+                <div class="sun-moon" id="sunMoon">
+                    <svg width="30" height="30" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="#FFEB3B" />
+                    </svg>
+                </div>
+            </div>
+            
+            <div class="control-panel">
+                <div class="panel-section">
+                    <h3>模拟控制</h3>
+                    <button id="startBtn">开始模拟</button>
+                    <button id="stopBtn" class="stop-btn" disabled>停止模拟</button>
+                    <button id="resetBtn">重置</button>
+                    <button id="addPersonBtn">添加居民</button>
+                </div>
+                
+                <div class="panel-section">
+                    <h3>角色选择</h3>
+                    <div class="character-cards" id="characterCards">
+                        <div class="character-card selected" data-type="normal">
+                            <div class="character-name">普通人</div>
+                            <div class="character-info">逃跑率: 50%</div>
+                            <div class="character-info">夜视: 一般</div>
+                            <div class="character-info">能量消耗: 中等</div>
+                            <div class="character-info">速度: 中等</div>
+                        </div>
+                        <div class="character-card" data-type="guard">
+                            <div class="character-name">守卫</div>
+                            <div class="character-info">逃跑率: 70%</div>
+                            <div class="character-info">夜视: 良好</div>
+                            <div class="character-info">能量消耗: 高</div>
+                            <div class="character-info">速度: 中高</div>
+                        </div>
+                        <div class="character-card" data-type="scout">
+                            <div class="character-name">侦察兵</div>
+                            <div class="character-info">逃跑率: 90%</div>
+                            <div class="character-info">夜视: 良好</div>
+                            <div class="character-info">能量消耗: 中高</div>
+                            <div class="character-info">速度: 高</div>
+                        </div>
+                        <div class="character-card" data-type="elder">
+                            <div class="character-name">长者</div>
+                            <div class="character-info">逃跑率: 30%</div>
+                            <div class="character-info">夜视: 较差</div>
+                            <div class="character-info">能量消耗: 低</div>
+                            <div class="character-info">速度: 低</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="panel-section">
+                    <h3>生存参数</h3>
+                    <div class="param-group">
+                        <label for="initialPopulation">初始居民数</label>
+                        <input type="number" id="initialPopulation" value="5" min="1" max="50">
+                    </div>
+                    <div class="param-group">
+                        <label for="mangoTrees">芒果树数量</label>
+                        <input type="number" id="mangoTrees" value="3" min="1" max="10">
+                    </div>
+                    <div class="param-group">
+                        <label for="initialHouses">初始房屋数量</label>
+                        <input type="number" id="initialHouses" value="2" min="1" max="10">
+                    </div>
+                    <div class="param-group">
+                        <label for="houseCapacity">房屋容量</label>
+                        <input type="number" id="houseCapacity" value="3" min="1" max="10">
+                    </div>
+                    <div class="param-group">
+                        <label for="flowerCount">食人花数量</label>
+                        <input type="number" id="flowerCount" value="2" min="1" max="5">
+                    </div>
+                    <div class="param-group">
+                        <label for="mangoRegrowTime">芒果再生时间(小时)</label>
+                        <input type="number" id="mangoRegrowTime" value="6" min="1" max="24">
+                    </div>
+                    <div class="param-group">
+                        <label for="flowerAttackRate">食人花攻击概率(%)</label>
+                        <input type="number" id="flowerAttackRate" value="15" min="1" max="100">
+                    </div>
+                    <div class="param-group">
+                        <label for="homelessDeathRate">无家可归死亡率(%)</label>
+                        <input type="number" id="homelessDeathRate" value="50" min="0" max="100">
+                    </div>
+                    <div class="param-group">
+                        <label for="simulationSpeed">模拟速度(x)</label>
+                        <input type="number" id="simulationSpeed" value="1" min="0.5" max="5" step="0.5">
+                    </div>
+                </div>
+                
+                <div class="panel-section">
+                    <h3>繁殖设置</h3>
+                    <div class="param-group">
+                        <label for="mangosToReproduce">繁殖所需芒果数</label>
+                        <input type="number" id="mangosToReproduce" value="3" min="1" max="20">
+                    </div>
+                    <div class="param-group">
+                        <label for="mutationChance">基因突变概率(%)</label>
+                        <input type="number" id="mutationChance" value="15" min="0" max="100">
+                    </div>
+                </div>
+
+                <div class="panel-section export-controls">
+                    <h3>图标导出</h3>
+                    <button id="exportPeopleBtn">导出居民图标</button>
+                    <button id="exportResourcesBtn">导出资源图标</button>
+                    <button id="exportAllBtn">导出所有图标</button>
+                </div>
+            </div>
+            
+            <div class="custom-character-panel">
+                <div class="panel-section">
+                    <h3>自定义角色</h3>
+                    <div class="param-group">
+                        <label for="customName">角色名称</label>
+                        <input type="text" id="customName" value="自定义角色">
+                    </div>
+                    <div class="param-group">
+                        <label for="customEscapeRate">逃跑率(%)</label>
+                        <input type="number" id="customEscapeRate" value="50" min="0" max="100">
+                    </div>
+                    <div class="param-group">
+                        <label for="customNightVision">夜视能力</label>
+                        <select id="customNightVision">
+                            <option value="excellent">优秀</option>
+                            <option value="good">良好</option>
+                            <option value="average" selected>一般</option>
+                            <option value="poor">较差</option>
+                            <option value="none">极差(夜盲)</option>
+                        </select>
+                    </div>
+                    <div class="param-group">
+                        <label for="customEnergyConsumption">能量消耗率</label>
+                        <select id="customEnergyConsumption">
+                            <option value="low">低</option>
+                            <option value="medium" selected>中等</option>
+                            <option value="high">高</option>
+                        </select>
+                    </div>
+                    <div class="param-group">
+                        <label for="customSpeed">移动速度</label>
+                        <select id="customSpeed">
+                            <option value="low">低</option>
+                            <option value="medium" selected>中等</option>
+                            <option value="high">高</option>
+                        </select>
+                    </div>
+                    <div class="param-group">
+                        <label for="customColor">角色颜色</label>
+                        <input type="color" id="customColor" value="#558B2F">
+                    </div>
+                    <button id="addCustomCharacter">添加自定义角色</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="charts-container">
+            <div class="chart-wrapper">
+                <h3>居民数量变化</h3>
+                <canvas id="populationChart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <h3>资源数量变化</h3>
+                <canvas id="resourcesChart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <h3>死亡原因统计</h3>
+                <canvas id="deathChart"></canvas>
+            </div>
+            <div class="chart-wrapper">
+                <h3>角色分布趋势</h3>
+                <canvas id="characterDistributionChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量初始化
+        let isRunning = false;
+        let simulationInterval = null;
+        let day = 0;
+        let hour = 0;
+        let timeOfDayProgress = 0; // 用于平滑昼夜变换 (0-1)
+        let people = [];
+        let mangoTrees = [];
+        let flowers = [];
+        let mangos = [];
+        let houses = [];
+        let selectedCharacter = 'normal';
+        let customCharacterId = 1;
+        let isNight = false;
+        
+        // Three.js 3D场景初始化
+        let scene, camera, renderer, controls;
+        let ground, skybox;
+        let ambientLight, directionalLight;
+        
+        // 统计数据
+        let stats = {
+            currentPopulation: 0,
+            mangoCount: 0,
+            houseCount: 0,
+            eatenCount: 0,
+            energyDeathCount: 0,
+            nightDeathCount: 0,
+            escapeCount: 0,
+            birthCount: 0,
+            mutationCount: 0,
+            simulationTime: 0,
+            timeOfDay: "白天"
+        };
+        
+        // 图表数据
+        const chartData = {
+            days: [],
+            population: [],
+            mangos: [],
+            houses: [],
+            eaten: [],
+            energyDeaths: [],
+            nightDeaths: [],
+            escapes: [],
+            births: [],
+            characterDistribution: {},
+            characterHistory: {}
+        };
+        
+        // 角色配置 - 新增速度属性
+        const characterTypes = {
+            normal: {
+                name: "普通人",
+                escapeRate: 50,
+                nightVision: "average",
+                energyConsumption: "medium",
+                speed: "medium", // 新增速度属性
+                color: "#2196F3",
+                icon: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><circle cx='15' cy='15' r='10' fill='%232196F3'/><circle cx='12' cy='13' r='2' fill='white'/><circle cx='18' cy='13' r='2' fill='white'/><path d='M12 20 Q15 22 18 20' stroke='white' stroke-width='2' fill='none'/></svg>",
+                dialogs: {
+                    danger: "有危险！",
+                    hungry: "我饿了...",
+                    eat: "真好吃！",
+                    birth: "新生命诞生了！",
+                    night: "天黑了，快回家！",
+                    homeless: "我没有家..."
+                }
+            },
+            guard: {
+                name: "守卫",
+                escapeRate: 70,
+                nightVision: "good",
+                energyConsumption: "high",
+                speed: "high-medium", // 新增速度属性
+                color: "#F44336",
+                icon: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><circle cx='15' cy='15' r='10' fill='%23F44336'/><circle cx='12' cy='13' r='2' fill='white'/><circle cx='18' cy='13' r='2' fill='white'/><path d='M12 20 Q15 22 18 20' stroke='white' stroke-width='2' fill='none'/></svg>",
+                dialogs: {
+                    danger: "大家快躲开！",
+                    hungry: "先忍着，保护大家要紧",
+                    eat: "补充体力继续警戒",
+                    birth: "我会保护好新生命",
+                    night: "夜间警戒开始，快回家",
+                    homeless: "没有家太危险了"
+                }
+            },
+            scout: {
+                name: "侦察兵",
+                escapeRate: 90,
+                nightVision: "good",
+                energyConsumption: "high",
+                speed: "high", // 新增速度属性
+                color: "#FFC107",
+                icon: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><circle cx='15' cy='15' r='10' fill='%23FFC107'/><circle cx='12' cy='13' r='2' fill='white'/><circle cx='18' cy='13' r='2' fill='white'/><path d='M12 20 Q15 22 18 20' stroke='white' stroke-width='2' fill='none'/></svg>",
+                dialogs: {
+                    danger: "附近的人注意！",
+                    hungry: "得找吃的保持体力",
+                    eat: "快速补充能量",
+                    birth: "新成员加入了！",
+                    night: "天黑了，我跑得快先回去",
+                    homeless: "我需要找到一个住所"
+                }
+            },
+            elder: {
+                name: "长者",
+                escapeRate: 30,
+                nightVision: "poor",
+                energyConsumption: "low",
+                speed: "low", // 新增速度属性
+                color: "#9C27B0",
+                icon: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><circle cx='15' cy='15' r='10' fill='%239C27B0'/><circle cx='12' cy='13' r='2' fill='white'/><circle cx='18' cy='13' r='2' fill='white'/><path d='M12 20 Q15 22 18 20' stroke='white' stroke-width='2' fill='none'/></svg>",
+                dialogs: {
+                    danger: "孩子们，快跑！",
+                    hungry: "年纪大了，容易饿啊",
+                    eat: "这芒果真甜",
+                    birth: "希望寄托在下一代",
+                    night: "天黑了看不清，慢慢走回家",
+                    homeless: "没有家，我该怎么办..."
+                }
+            }
+        };
+        
+        // DOM元素引用
+        const gameContainer = document.getElementById('gameContainer');
+        const canvas = document.getElementById('gameCanvas');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const addPersonBtn = document.getElementById('addPersonBtn');
+        const addCustomCharacterBtn = document.getElementById('addCustomCharacter');
+        const characterCardsContainer = document.getElementById('characterCards');
+        const timeIndicator = document.getElementById('timeIndicator');
+        const timeOfDayElement = document.getElementById('timeOfDay');
+        const sunMoonElement = document.getElementById('sunMoon');
+        const exportPeopleBtn = document.getElementById('exportPeopleBtn');
+        const exportResourcesBtn = document.getElementById('exportResourcesBtn');
+        const exportAllBtn = document.getElementById('exportAllBtn');
+        
+        // 初始化Three.js 3D场景
+        function initThreeJS() {
+            // 创建场景
+            scene = new THREE.Scene();
+            
+            // 创建相机
+            camera = new THREE.PerspectiveCamera(75, gameContainer.clientWidth / gameContainer.clientHeight, 0.1, 1000);
+            camera.position.set(0, 50, 50);
+            camera.lookAt(0, 0, 0);
+            
+            // 创建渲染器
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(gameContainer.clientWidth, gameContainer.clientHeight);
+            renderer.setClearColor(0xe8f5e9);
+            
+            // 添加轨道控制器
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            
+            // 添加光源
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            scene.add(ambientLight);
+            
+            directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(10, 20, 10);
+            scene.add(directionalLight);
+            
+            // 创建地面
+            const groundGeometry = new THREE.PlaneGeometry(100, 100);
+            const groundMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x8BC34A,
+                side: THREE.DoubleSide
+            });
+            ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            scene.add(ground);
+            
+            // 创建天空盒
+            createSkybox();
+            
+            // 响应窗口大小变化
+            window.addEventListener('resize', onWindowResize);
+            
+            // 渲染循环
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+        
+        // 创建天空盒
+        function createSkybox() {
+            const skyboxGeometry = new THREE.BoxGeometry(1000, 1000, 1000);
+            
+            // 天空盒材质 - 白天到黑夜的渐变
+            const skyboxMaterial = new THREE.MeshBasicMaterial({
+                color: 0x87CEEB,
+                side: THREE.BackSide
+            });
+            
+            skybox = new THREE.Mesh(skyboxGeometry, skyboxMaterial);
+            scene.add(skybox);
+        }
+        
+        // 窗口大小变化处理
+        function onWindowResize() {
+            camera.aspect = gameContainer.clientWidth / gameContainer.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(gameContainer.clientWidth, gameContainer.clientHeight);
+        }
+        
+        // 初始化图表
+        function initCharts() {
+            // 居民数量图表
+            const populationChart = new Chart(
+                document.getElementById('populationChart').getContext('2d'),
+                {
+                    type: 'line',
+                    data: {
+                        labels: chartData.days,
+                        datasets: [{
+                            label: '居民数量',
+                            data: chartData.population,
+                            borderColor: '#2196F3',
+                            backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                            fill: true,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: { beginAtZero: true, title: { display: true, text: '数量' } },
+                            x: { title: { display: true, text: '天数' } }
+                        }
+                    }
+                }
+            );
+            
+            // 资源数量图表
+            const resourcesChart = new Chart(
+                document.getElementById('resourcesChart').getContext('2d'),
+                {
+                    type: 'line',
+                    data: {
+                        labels: chartData.days,
+                        datasets: [
+                            {
+                                label: '芒果数量',
+                                data: chartData.mangos,
+                                borderColor: '#FFC107',
+                                backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                                fill: true,
+                                tension: 0.3
+                            },
+                            {
+                                label: '房屋数量',
+                                data: chartData.houses,
+                                borderColor: '#CD5C5C',
+                                backgroundColor: 'rgba(205, 92, 92, 0.1)',
+                                fill: true,
+                                tension: 0.3
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: { beginAtZero: true, title: { display: true, text: '数量' } },
+                            x: { title: { display: true, text: '天数' } }
+                        }
+                    }
+                }
+            );
+            
+            // 死亡原因图表 - 新增夜间冻死
+            const deathChart = new Chart(
+                document.getElementById('deathChart').getContext('2d'),
+                {
+                    type: 'bar',
+                    data: {
+                        labels: chartData.days,
+                        datasets: [
+                            {
+                                label: '被食人花吃掉',
+                                data: chartData.eaten,
+                                backgroundColor: '#F44336'
+                            },
+                            {
+                                label: '能量耗尽',
+                                data: chartData.energyDeaths,
+                                backgroundColor: '#FF9800'
+                            },
+                            {
+                                label: '夜间冻死',
+                                data: chartData.nightDeaths,
+                                backgroundColor: '#2196F3'
+                            },
+                            {
+                                label: '成功逃脱',
+                                data: chartData.escapes,
+                                backgroundColor: '#4CAF50'
+                            },
+                            {
+                                label: '新生儿',
+                                data: chartData.births,
+                                backgroundColor: '#FFEB3B'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: { beginAtZero: true, title: { display: true, text: '数量' } },
+                            x: { title: { display: true, text: '天数' } }
+                        }
+                    }
+                }
+            );
+            
+            // 角色分布图表
+            const characterDistributionChart = new Chart(
+                document.getElementById('characterDistributionChart').getContext('2d'),
+                {
+                    type: 'line',
+                    data: {
+                        labels: [],
+                        datasets: []
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { 
+                                beginAtZero: true, 
+                                stacked: true,
+                                title: { display: true, text: '角色数量' } 
+                            },
+                            x: { title: { display: true, text: '天数' } }
+                        },
+                        plugins: {
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false
+                            }
+                        }
+                    }
+                }
+            );
+            
+            return { 
+                populationChart, 
+                resourcesChart, 
+                deathChart,
+                characterDistributionChart
+            };
+        }
+        
+        // 获取图表实例
+        const charts = initCharts();
+        
+        // 工具函数
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+        
+        function getRandomPosition(avoidObjects = []) {
+            const size = 40; // 场景大小
+            let x, z;
+            let validPosition = false;
+            
+            while (!validPosition) {
+                x = getRandomInt(-size, size);
+                z = getRandomInt(-size, size);
+                validPosition = true;
+                
+                // 检查是否与其他物体距离过近
+                for (const obj of avoidObjects) {
+                    const distance = Math.hypot(x - obj.x, z - obj.z);
+                    if (distance < 5) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+            
+            return { x, z };
+        }
+        
+        // 显示对话框
+        function showDialog(x, z, text, duration = 2000) {
+            // 将3D坐标转换为2D屏幕坐标
+            const position = new THREE.Vector3(x, 2, z);
+            position.project(camera);
+            
+            const canvas = renderer.domElement;
+            const screenX = (position.x * 0.5 + 0.5) * canvas.clientWidth;
+            const screenY = (-position.y * 0.5 + 0.5) * canvas.clientHeight;
+            
+            const dialog = document.createElement('div');
+            dialog.className = 'dialog';
+            dialog.textContent = text;
+            dialog.style.left = `${screenX}px`;
+            dialog.style.top = `${screenY - 40}px`;
+            gameContainer.appendChild(dialog);
+            
+            setTimeout(() => {
+                dialog.style.opacity = '0';
+                dialog.style.transition = 'opacity 0.3s';
+                setTimeout(() => {
+                    if (dialog.parentNode) {
+                        gameContainer.removeChild(dialog);
+                    }
+                }, 300);
+            }, duration);
+        }
+        
+        // 平滑昼夜交替函数 - 新增夜间无家可归者死亡检查
+        function updateTimeOfDay() {
+            const previousHour = hour;
+            hour = (hour + 0.25) % 24; // 每步增加15分钟
+            timeOfDayProgress = hour / 24;
+            
+            // 每天更新
+            if (previousHour >= 23.75 && hour < 0.25) {
+                day++;
+                stats.simulationTime = day;
+            }
+            
+            // 计算是否为夜晚 (18:00-6:00)
+            const newIsNight = hour >= 18 || hour < 6;
+            
+            // 平滑更新天空颜色
+            let skyColor, ambientIntensity, directIntensity;
+            
+            if (newIsNight) {
+                // 夜晚
+                const nightProgress = hour >= 18 
+                    ? (hour - 18) / 6  // 傍晚到深夜
+                    : (hour + 6) / 6;  // 深夜到黎明
+                
+                // 天空颜色从日落到日出的渐变
+                skyColor = new THREE.Color(0x0a1929).lerp(new THREE.Color(0x87CEEB), Math.sin(nightProgress * Math.PI));
+                ambientIntensity = 0.1 + 0.1 * Math.sin(nightProgress * Math.PI);
+                directIntensity = 0.1 * Math.sin(nightProgress * Math.PI);
+                
+                stats.timeOfDay = "黑夜";
+                timeIndicator.textContent = "黑夜";
+                timeOfDayElement.textContent = "黑夜";
+                
+                // 更新太阳/月亮图标
+                sunMoonElement.innerHTML = `
+                    <svg width="30" height="30" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="#E0E0E0" />
+                        <circle cx="30" cy="30" r="10" fill="#0a1929" />
+                    </svg>
+                `;
+            } else {
+                // 白天
+                const dayProgress = (hour - 6) / 12;
+                
+                // 天空颜色从黎明到日落的渐变
+                skyColor = new THREE.Color(0x87CEEB).lerp(new THREE.Color(0xffb74d), Math.sin(dayProgress * Math.PI));
+                ambientIntensity = 0.5 + 0.2 * Math.sin(dayProgress * Math.PI);
+                directIntensity = 1.0 * Math.sin(dayProgress * Math.PI);
+                
+                stats.timeOfDay = "白天";
+                timeIndicator.textContent = "白天";
+                timeOfDayElement.textContent = "白天";
+                
+                // 更新太阳/月亮图标
+                sunMoonElement.innerHTML = `
+                    <svg width="30" height="30" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="#FFEB3B" />
+                    </svg>
+                `;
+            }
+            
+            // 应用颜色和光照变化
+            skybox.material.color.copy(skyColor);
+            ambientLight.intensity = ambientIntensity;
+            directionalLight.intensity = directIntensity;
+            
+            // 夜间行为调整
+            if (newIsNight !== isNight) {
+                isNight = newIsNight;
+                
+                if (isNight) {
+                    // 夜晚来临，所有人立即回家
+                    people.forEach(person => {
+                        if (!person.eaten && !person.escaped && !person.inHouse) {
+                            person.returnHome(true); // 强制回家
+                        }
+                    });
+                    
+                    // 每小时检查一次无家可归者
+                    checkHomelessSurvival();
+                }
+            } else if (isNight && hour % 1 === 0) {
+                // 夜间每小时检查一次无家可归者
+                checkHomelessSurvival();
+            }
+        }
+        
+        // 检查无家可归者的生存情况
+        function checkHomelessSurvival() {
+            const homelessRate = parseInt(document.getElementById('homelessDeathRate').value) / 100;
+            const homelessPeople = people.filter(person => 
+                !person.eaten && !person.escaped && !person.inHouse
+            );
+            
+            // 随机选择部分无家可归者死亡
+            homelessPeople.forEach(person => {
+                if (Math.random() < homelessRate) {
+                    person.die('night');
+                    
+                    // 随机显示无家可归的对话框
+                    if (Math.random() < 0.3) {
+                        showDialog(person.x, person.z, characterTypes[person.type].dialogs.homeless);
+                    }
+                }
+            });
+        }
+        
+        // 居民类 - 新增速度属性和夜晚回家机制
+        class Person {
+            constructor(type, isBaby = false, parentId = null) {
+                const pos = getRandomPosition([...mangoTrees, ...flowers, ...houses]);
+                this.x = pos.x;
+                this.z = pos.z;
+                this.y = 1; // 高度
+                this.type = type;
+                const config = characterTypes[type];
+                this.escapeRate = config.escapeRate;
+                this.nightVision = config.nightVision;
+                this.color = config.color;
+                this.energy = 100; // 能量条
+                this.maxEnergy = 100;
+                this.eaten = false;
+                this.escaped = false;
+                this.isBaby = isBaby;
+                this.parentId = parentId;
+                this.mangosEaten = 0;
+                this.inHouse = false;
+                this.currentHouse = null;
+                this.target = null; // 移动目标
+                this.energyBar = null;
+                this.id = Date.now() + Math.random().toString(36).substr(2, 9);
+                
+                // 根据角色类型设置能量消耗率
+                switch (config.energyConsumption) {
+                    case 'low':
+                        this.energyConsumptionRate = 0.2;
+                        break;
+                    case 'medium':
+                        this.energyConsumptionRate = 0.4;
+                        break;
+                    case 'high':
+                        this.energyConsumptionRate = 0.6;
+                        break;
+                }
+                
+                // 根据角色类型设置速度 - 新增速度属性
+                switch (config.speed) {
+                    case 'low':
+                        this.speed = 0.08;
+                        break;
+                    case 'medium':
+                        this.speed = 0.1;
+                        break;
+                    case 'high-medium':
+                        this.speed = 0.12;
+                        break;
+                    case 'high':
+                        this.speed = 0.15;
+                        break;
+                }
+                
+                // 创建3D模型
+                this.createModel();
+                
+                // 创建能量条
+                this.createEnergyBar();
+            }
+            
+            // 创建3D模型
+            createModel() {
+                const size = this.isBaby ? 0.8 : 1.2;
+                const geometry = new THREE.CylinderGeometry(size/2, size, size*2, 8);
+                const material = new THREE.MeshStandardMaterial({ color: this.color });
+                this.mesh = new THREE.Mesh(geometry, material);
+                this.mesh.position.set(this.x, this.y, this.z);
+                scene.add(this.mesh);
+                
+                // 添加眼睛
+                const eyeGeometry = new THREE.SphereGeometry(size/6, 16, 16);
+                const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+                
+                this.leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                this.leftEye.position.set(-size/4, size/2, 0);
+                this.mesh.add(this.leftEye);
+                
+                this.rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                this.rightEye.position.set(size/4, size/2, 0);
+                this.mesh.add(this.rightEye);
+                
+                // 添加瞳孔
+                const pupilGeometry = new THREE.SphereGeometry(size/12, 16, 16);
+                const pupilMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+                
+                this.leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+                this.leftPupil.position.set(-size/4, size/2, 0);
+                this.mesh.add(this.leftPupil);
+                
+                this.rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+                this.rightPupil.position.set(size/4, size/2, 0);
+                this.mesh.add(this.rightPupil);
+            }
+            
+            // 创建能量条
+            createEnergyBar() {
+                // 创建能量条容器
+                this.energyBarContainer = document.createElement('div');
+                this.energyBarContainer.className = 'energy-bar-container';
+                gameContainer.appendChild(this.energyBarContainer);
+                
+                // 创建能量条
+                this.energyBar = document.createElement('div');
+                this.energyBar.className = 'energy-bar';
+                this.energyBar.style.width = '100%';
+                this.energyBarContainer.appendChild(this.energyBar);
+                
+                // 更新能量条位置
+                this.updateEnergyBarPosition();
+            }
+            
+            // 更新能量条位置
+            updateEnergyBarPosition() {
+                if (!this.energyBarContainer) return;
+                
+                // 将3D坐标转换为2D屏幕坐标
+                const position = new THREE.Vector3(this.x, this.y + 2, this.z);
+                position.project(camera);
+                
+                const canvas = renderer.domElement;
+                const screenX = (position.x * 0.5 + 0.5) * canvas.clientWidth;
+                const screenY = (-position.y * 0.5 + 0.5) * canvas.clientHeight;
+                
+                this.energyBarContainer.style.left = `${screenX - 50}px`; // 居中
+                this.energyBarContainer.style.top = `${screenY}px`;
+            }
+            
+            update() {
+                if (this.eaten || this.escaped) return;
+                
+                // 婴儿成长为成人
+                if (this.isBaby && this.mangosEaten >= 2) {
+                    this.isBaby = false;
+                    scene.remove(this.mesh);
+                    this.createModel();
+                }
+                
+                // 夜晚必须在家，否则立即回家
+                if (isNight && !this.inHouse) {
+                    this.returnHome(true); // 强制回家
+                }
+                // 白天行为
+                else if (!isNight) {
+                    // 能量低时寻找食物
+                    if (this.energy < 50) {
+                        this.findFood();
+                    }
+                    // 随机移动或回家
+                    else {
+                        // 有30%概率回家
+                        if (houses.length > 0 && Math.random() < 0.3 && !this.inHouse) {
+                            this.returnHome();
+                        }
+                        // 有10%概率离开家
+                        else if (this.inHouse && Math.random() < 0.1) {
+                            this.leaveHome();
+                        }
+                        // 随机移动
+                        else if (!this.target || this.isCloseToTarget()) {
+                            this.setRandomTarget();
+                        }
+                        this.moveTowardsTarget();
+                    }
+                }
+                
+                // 只有移动时才消耗能量
+                let isMoving = false;
+                if (this.target) {
+                    isMoving = true;
+                }
+                
+                // 更新能量消耗 - 只有移动时才消耗
+                if (isMoving) {
+                    this.consumeEnergy();
+                } else {
+                    // 静止时缓慢恢复能量
+                    if (this.energy < this.maxEnergy) {
+                        this.energy += 0.05;
+                    }
+                }
+                
+                // 更新能量条
+                this.updateEnergyBar();
+                
+                // 检查能量是否耗尽
+                if (this.energy <= 0) {
+                    this.die('energy');
+                    return;
+                }
+                
+                // 检查是否在芒果附近并吃芒果
+                this.checkMangoConsumption();
+                
+                // 检查繁殖
+                this.checkReproduction();
+                
+                // 更新能量条位置
+                this.updateEnergyBarPosition();
+            }
+            
+            // 消耗能量 - 只在移动时调用
+            consumeEnergy() {
+                let consumption = this.energyConsumptionRate;
+                
+                // 夜间消耗增加
+                if (isNight) {
+                    consumption *= 1.5;
+                }
+                
+                this.energy = Math.max(0, this.energy - consumption);
+            }
+            
+            // 更新能量条显示
+            updateEnergyBar() {
+                if (!this.energyBar) return;
+                
+                const percentage = Math.max(0, Math.min(100, this.energy));
+                this.energyBar.style.width = `${percentage}%`;
+                
+                // 更新能量条状态样式
+                this.energyBar.classList.remove('low', 'critical');
+                if (percentage < 30) {
+                    this.energyBar.classList.add('low');
+                }
+                if (percentage < 15) {
+                    this.energyBar.classList.add('critical');
+                }
+            }
+            
+            // 回家 - 新增强制回家参数
+            returnHome(force = false) {
+                // 显示夜间回家提示
+                if (isNight && force && Math.random() < 0.3) {
+                    showDialog(this.x, this.z, characterTypes[this.type].dialogs.night);
+                }
+                
+                if (this.currentHouse) {
+                    this.target = { x: this.currentHouse.x, z: this.currentHouse.z };
+                } else if (houses.length > 0) {
+                    // 如果没有家，找一个有空位的房子
+                    const availableHouses = houses.filter(house => house.occupants.length < house.capacity);
+                    if (availableHouses.length > 0) {
+                        const randomHouse = availableHouses[Math.floor(Math.random() * availableHouses.length)];
+                        this.target = { x: randomHouse.x, z: randomHouse.z };
+                    }
+                }
+            }
+            
+            // 离开家
+            leaveHome() {
+                if (this.inHouse && this.currentHouse) {
+                    this.currentHouse.removeOccupant(this);
+                    this.currentHouse = null;
+                    this.inHouse = false;
+                    
+                    // 从房子位置稍微移开
+                    this.x += getRandomInt(-2, 2);
+                    this.z += getRandomInt(-2, 2);
+                    this.mesh.position.set(this.x, this.y, this.z);
+                }
+            }
+            
+            // 寻找食物
+            findFood() {
+                if (mangos.length === 0) {
+                    // 没有芒果时随机移动
+                    if (!this.target || this.isCloseToTarget()) {
+                        this.setRandomTarget();
+                    }
+                    this.moveTowardsTarget();
+                    return;
+                }
+                
+                // 找到最近的芒果
+                let closestMango = mangos[0];
+                let closestDistance = Math.hypot(this.x - closestMango.x, this.z - closestMango.z);
+                
+                for (const mango of mangos) {
+                    const distance = Math.hypot(this.x - mango.x, this.z - mango.z);
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestMango = mango;
+                    }
+                }
+                
+                this.target = { x: closestMango.x, z: closestMango.z };
+                this.moveTowardsTarget();
+            }
+            
+            // 设置随机目标
+            setRandomTarget() {
+                const pos = getRandomPosition();
+                this.target = { x: pos.x, z: pos.z };
+            }
+            
+            // 向目标移动 - 使用角色自身速度
+            moveTowardsTarget() {
+                if (!this.target) return;
+                
+                const dx = this.target.x - this.x;
+                const dz = this.target.z - this.z;
+                const distance = Math.hypot(dx, dz);
+                
+                if (distance > 0.5) {
+                    // 使用角色自身速度
+                    this.x += (dx / distance) * this.speed;
+                    this.z += (dz / distance) * this.speed;
+                    this.mesh.position.set(this.x, this.y, this.z);
+                    
+                    // 面向移动方向
+                    this.mesh.lookAt(this.target.x, this.y, this.target.z);
+                } else if (houses.length > 0 && !this.inHouse) {
+                    // 到达目标且不在屋内，尝试进入附近的房子
+                    const nearbyHouse = houses.find(house => {
+                        return Math.hypot(this.x - house.x, this.z - house.z) < 3 && 
+                               house.occupants.length < house.capacity;
+                    });
+                    
+                    if (nearbyHouse) {
+                        nearbyHouse.addOccupant(this);
+                        this.currentHouse = nearbyHouse;
+                        this.inHouse = true;
+                        this.target = null;
+                    }
+                }
+            }
+            
+            // 检查是否接近目标
+            isCloseToTarget() {
+                if (!this.target) return true;
+                const distance = Math.hypot(this.x - this.target.x, this.z - this.target.z);
+                return distance < 1;
+            }
+            
+            checkMangoConsumption() {
+                for (let i = 0; i < mangos.length; i++) {
+                    const mango = mangos[i];
+                    const distance = Math.hypot(this.x - mango.x, this.z - mango.z);
+                    if (distance < 1.5) {
+                        // 吃掉芒果，补满能量
+                        mango.eaten();
+                        mangos.splice(i, 1);
+                        this.energy = this.maxEnergy;
+                        this.mangosEaten++;
+                        showDialog(this.x, this.z, characterTypes[this.type].dialogs.eat);
+                        break;
+                    }
+                }
+            }
+            
+            checkReproduction() {
+                // 成年居民可以繁殖
+                if (this.isBaby) return;
+                
+                const requiredMangos = parseInt(document.getElementById('mangosToReproduce').value);
+                
+                // 有足够芒果才会繁殖
+                if (this.mangosEaten >= requiredMangos && Math.random() < 0.02) {
+                    this.reproduce();
+                    this.mangosEaten -= requiredMangos; // 消耗芒果
+                }
+            }
+            
+            reproduce() {
+                // 有一定概率基因突变
+                const mutationChance = parseInt(document.getElementById('mutationChance').value);
+                let babyType = this.type;
+                
+                if (Math.random() * 100 < mutationChance) {
+                    // 基因突变，随机选择一种角色
+                    const types = Object.keys(characterTypes);
+                    babyType = types[Math.floor(Math.random() * types.length)];
+                    stats.mutationCount++;
+                }
+                
+                // 创建婴儿
+                const baby = new Person(babyType, true, this.id);
+                people.push(baby);
+                stats.currentPopulation = people.length;
+                stats.birthCount++;
+                
+                showDialog(this.x, this.z, characterTypes[this.type].dialogs.birth);
+            }
+            
+            alertDanger(flower) {
+                showDialog(this.x, this.z, characterTypes[this.type].dialogs.danger);
+                
+                // 尝试逃跑
+                let effectiveEscapeRate = this.escapeRate;
+                if (isNight && this.nightVision === "none") {
+                    effectiveEscapeRate *= 0.5;
+                }
+                
+                if (Math.random() * 100 < effectiveEscapeRate) {
+                    this.escape(flower);
+                    return true;
+                }
+                return false;
+            }
+            
+            escape(flower) {
+                if (this.inHouse) {
+                    this.leaveHome();
+                }
+                
+                this.escaped = true;
+                stats.escapeCount++;
+                
+                // 向远离花的方向逃跑
+                const dx = this.x > flower.x ? 1 : -1;
+                const dz = this.z > flower.z ? 1 : -1;
+                
+                // 创建逃跑动画
+                const escapeInterval = setInterval(() => {
+                    if (!this.mesh) {
+                        clearInterval(escapeInterval);
+                        return;
+                    }
+                    
+                    this.x += dx * this.speed * 3; // 逃跑时速度加快
+                    this.z += dz * this.speed * 3;
+                    this.mesh.position.set(this.x, this.y, this.z);
+                    
+                    // 淡出效果
+                    const material = this.mesh.material;
+                    material.opacity = Math.max(0, material.opacity - 0.05);
+                    
+                    if (material.opacity <= 0) {
+                        this.remove();
+                        clearInterval(escapeInterval);
+                    }
+                }, 50);
+            }
+            
+            die(cause) {
+                if (this.inHouse && this.currentHouse) {
+                    this.leaveHome();
+                }
+                
+                if (cause === 'eaten') {
+                    this.eaten = true;
+                    stats.eatenCount++;
+                } else if (cause === 'night') {
+                    this.eaten = true;
+                    stats.nightDeathCount++;
+                } else {
+                    this.escaped = true;
+                    stats.energyDeathCount++;
+                }
+                
+                // 死亡动画
+                const dieInterval = setInterval(() => {
+                    if (!this.mesh) {
+                        clearInterval(dieInterval);
+                        return;
+                    }
+                    
+                    // 缩小并淡出
+                    this.mesh.scale.multiplyScalar(0.9);
+                    const material = this.mesh.material;
+                    material.opacity = Math.max(0, material.opacity - 0.05);
+                    
+                    if (material.opacity <= 0) {
+                        this.remove();
+                        clearInterval(dieInterval);
+                    }
+                }, 50);
+            }
+            
+            remove() {
+                if (this.mesh && scene) {
+                    scene.remove(this.mesh);
+                    this.mesh = null;
+                }
+                
+                if (this.energyBarContainer && this.energyBarContainer.parentNode) {
+                    this.energyBarContainer.parentNode.removeChild(this.energyBarContainer);
+                    this.energyBarContainer = null;
+                    this.energyBar = null;
+                }
+                
+                if (this.inHouse && this.currentHouse) {
+                    this.currentHouse.removeOccupant(this);
+                }
+                
+                const index = people.findIndex(p => p.id === this.id);
+                if (index !== -1) {
+                    people.splice(index, 1);
+                    stats.currentPopulation = people.length;
+                }
+            }
+        }
+        
+        // 芒果树类
+        class MangoTree {
+            constructor() {
+                const pos = getRandomPosition([...flowers, ...houses]);
+                this.x = pos.x;
+                this.z = pos.z;
+                this.y = 5; // 高度
+                this.mangos = [];
+                this.lastMangoRegrow = 0;
+                this.regrowTime = parseInt(document.getElementById('mangoRegrowTime'));
+                
+                // 创建3D模型
+                this.createModel();
+                
+                // 初始生成2个芒果
+                for (let i = 0; i < 2; i++) {
+                    this.growMango(true);
+                }
+            }
+            
+            // 创建3D模型
+            createModel() {
+                // 树干
+                const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.8, 4, 8);
+                const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+                this.trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                this.trunk.position.set(this.x, 2, this.z);
+                scene.add(this.trunk);
+                
+                // 树冠
+                const crownGeometry = new THREE.SphereGeometry(2, 16, 16);
+                const crownMaterial = new THREE.MeshStandardMaterial({ color: 0x4CAF50 });
+                this.crown = new THREE.Mesh(crownGeometry, crownMaterial);
+                this.crown.position.set(this.x, 5, this.z);
+                scene.add(this.crown);
+            }
+            
+            // 生长芒果
+            growMango(initial = false) {
+                if (!initial && hour - this.lastMangoRegrow < this.regrowTime) {
+                    return false; // 还没到再生时间
+                }
+                
+                // 芒果位置稍微偏移
+                const offsetX = (Math.random() - 0.5) * 2;
+                const offsetZ = (Math.random() - 0.5) * 2;
+                
+                const mango = new Mango(this.x + offsetX, this.z + offsetZ, this.y - 1, this);
+                this.mangos.push(mango);
+                mangos.push(mango);
+                stats.mangoCount = mangos.length;
+                
+                if (!initial) {
+                    this.lastMangoRegrow = hour;
+                }
+                
+                return true;
+            }
+            
+            // 芒果被吃掉后，记录时间以便再生
+            mangoEaten() {
+                this.lastMangoRegrow = hour;
+            }
+            
+            remove() {
+                if (this.trunk) scene.remove(this.trunk);
+                if (this.crown) scene.remove(this.crown);
+                
+                // 移除所有芒果
+                this.mangos.forEach(mango => {
+                    const index = mangos.indexOf(mango);
+                    if (index !== -1) {
+                        mangos.splice(index, 1);
+                    }
+                    mango.remove();
+                });
+            }
+        }
+        
+        // 芒果类
+        class Mango {
+            constructor(x, z, y, tree) {
+                this.x = x;
+                this.z = z;
+                this.y = y || 3;
+                this.tree = tree;
+                
+                // 创建3D模型
+                this.createModel();
+            }
+            
+            // 创建3D模型
+            createModel() {
+                const geometry = new THREE.SphereGeometry(0.3, 16, 16);
+                const material = new THREE.MeshStandardMaterial({ color: 0xFFC107 });
+                this.mesh = new THREE.Mesh(geometry, material);
+                this.mesh.position.set(this.x, this.y, this.z);
+                scene.add(this.mesh);
+            }
+            
+            // 被吃掉
+            eaten() {
+                this.remove();
+                if (this.tree) {
+                    this.tree.mangoEaten();
+                    
+                    // 从树的芒果列表中移除
+                    const index = this.tree.mangos.indexOf(this);
+                    if (index !== -1) {
+                        this.tree.mangos.splice(index, 1);
+                    }
+                    
+                    // 安排再生
+                    setTimeout(() => {
+                        this.tree.growMango();
+                    }, parseInt(document.getElementById('mangoRegrowTime')) * 1000 / parseFloat(document.getElementById('simulationSpeed').value));
+                }
+            }
+            
+            remove() {
+                if (this.mesh) scene.remove(this.mesh);
+            }
+        }
+        
+        // 房屋类 - 支持可配置容量
+        class House {
+            constructor(x, z) {
+                this.x = x;
+                this.z = z;
+                this.y = 1;
+                this.occupants = [];
+                // 从参数获取房屋容量
+                this.capacity = parseInt(document.getElementById('houseCapacity').value);
+                
+                // 创建3D模型
+                this.createModel();
+            }
+            
+            // 创建3D模型
+            createModel() {
+                // 房屋主体
+                const baseGeometry = new THREE.BoxGeometry(3, 2, 3);
+                const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+                this.base = new THREE.Mesh(baseGeometry, baseMaterial);
+                this.base.position.set(this.x, this.y + 1, this.z);
+                scene.add(this.base);
+                
+                // 屋顶
+                const roofGeometry = new THREE.ConeGeometry(2, 1.5, 4);
+                const roofMaterial = new THREE.MeshStandardMaterial({ color: 0xCD5C5C });
+                this.roof = new THREE.Mesh(roofGeometry, roofMaterial);
+                this.roof.position.set(this.x, this.y + 3, this.z);
+                this.roof.rotation.y = Math.PI / 4;
+                scene.add(this.roof);
+                
+                // 门
+                const doorGeometry = new THREE.BoxGeometry(0.8, 1.2, 0.1);
+                const doorMaterial = new THREE.MeshStandardMaterial({ color: 0xA0522D });
+                this.door = new THREE.Mesh(doorGeometry, doorMaterial);
+                this.door.position.set(this.x, this.y + 0.6, this.z - 1.5);
+                scene.add(this.door);
+            }
+            
+            addOccupant(person) {
+                if (this.occupants.length < this.capacity) {
+                    this.occupants.push(person);
+                    person.inHouse = true;
+                    person.currentHouse = this;
+                    
+                    // 将人移动到房屋内
+                    const offset = this.occupants.length - 1;
+                    person.x = this.x + (offset - 1) * 0.5;
+                    person.z = this.z;
+                    person.mesh.position.set(person.x, person.y, person.z);
+                }
+            }
+            
+            removeOccupant(person) {
+                const index = this.occupants.indexOf(person);
+                if (index !== -1) {
+                    this.occupants.splice(index, 1);
+                }
+            }
+            
+            remove() {
+                if (this.base) scene.remove(this.base);
+                if (this.roof) scene.remove(this.roof);
+                if (this.door) scene.remove(this.door);
+                
+                // 驱逐所有居民
+                this.occupants.forEach(occupant => {
+                    occupant.inHouse = false;
+                    occupant.currentHouse = null;
+                });
+            }
+        }
+        
+        // 食人花类
+        class Flower {
+            constructor() {
+                const pos = getRandomPosition([...mangoTrees, ...houses]);
+                this.x = pos.x;
+                this.z = pos.z;
+                this.y = 1;
+                
+                // 创建3D模型
+                this.createModel();
+                
+                // 脉动动画
+                this.pulseAnimation();
+            }
+            
+            // 创建3D模型
+            createModel() {
+                // 花茎
+                const stemGeometry = new THREE.CylinderGeometry(0.2, 0.2, 1.5, 8);
+                const stemMaterial = new THREE.MeshStandardMaterial({ color: 0x4CAF50 });
+                this.stem = new THREE.Mesh(stemGeometry, stemMaterial);
+                this.stem.position.set(this.x, this.y - 0.5, this.z);
+                scene.add(this.stem);
+                
+                // 花瓣 - 创建多个花瓣
+                this.petals = [];
+                const petalGeometry = new THREE.SphereGeometry(0.6, 16, 16, 0, Math.PI, 0, Math.PI/2);
+                const petalMaterial = new THREE.MeshStandardMaterial({ color: 0xF44336 });
+                
+                for (let i = 0; i < 4; i++) {
+                    const petal = new THREE.Mesh(petalGeometry, petalMaterial);
+                    const angle = (i / 4) * Math.PI * 2;
+                    petal.position.set(
+                        this.x + Math.cos(angle) * 0.8,
+                        this.y + 0.5,
+                        this.z + Math.sin(angle) * 0.8
+                    );
+                    petal.rotation.y = angle;
+                    scene.add(petal);
+                    this.petals.push(petal);
+                }
+                
+                // 花心
+                const centerGeometry = new THREE.SphereGeometry(0.4, 16, 16);
+                const centerMaterial = new THREE.MeshStandardMaterial({ color: 0xFFEB3B });
+                this.center = new THREE.Mesh(centerGeometry, centerMaterial);
+                this.center.position.set(this.x, this.y + 0.5, this.z);
+                scene.add(this.center);
+            }
+            
+            // 脉动动画
+            pulseAnimation() {
+                let scale = 1;
+                let growing = true;
+                
+                this.pulseInterval = setInterval(() => {
+                    if (!this.center) {
+                        clearInterval(this.pulseInterval);
+                        return;
+                    }
+                    
+                    if (growing) {
+                        scale += 0.01;
+                        if (scale > 1.1) growing = false;
+                    } else {
+                        scale -= 0.01;
+                        if (scale < 1) growing = true;
+                    }
+                    
+                    this.center.scale.set(scale, scale, scale);
+                    this.petals.forEach(petal => {
+                        petal.scale.set(scale, scale, scale);
+                    });
+                }, 50);
+            }
+            
+            attack() {
+                // 黑夜攻击概率增加
+                const baseAttackRate = parseInt(document.getElementById('flowerAttackRate').value) / 100;
+                const attackRate = isNight ? baseAttackRate * 1.5 : baseAttackRate;
+                
+                if (Math.random() > attackRate) return;
+                
+                // 寻找附近的人
+                const nearbyPeople = people.filter(person => {
+                    if (person.eaten || person.escaped) return false;
+                    const distance = Math.hypot(this.x - person.x, this.z - person.z);
+                    return distance < 8; // 攻击范围
+                });
+                
+                if (nearbyPeople.length === 0) return;
+                
+                // 先让有能力的人发出警报
+                for (const person of nearbyPeople) {
+                    if (person.nightVision !== "none") { // 夜盲者无法有效发出警报
+                        person.alertDanger(this);
+                    }
+                }
+                
+                // 检查哪些人没逃脱，会被吃掉
+                setTimeout(() => {
+                    for (const person of nearbyPeople) {
+                        if (!person.eaten && !person.escaped) {
+                            person.die('eaten');
+                        }
+                    }
+                }, 500);
+            }
+            
+            remove() {
+                if (this.pulseInterval) clearInterval(this.pulseInterval);
+                if (this.stem) scene.remove(this.stem);
+                if (this.center) scene.remove(this.center);
+                this.petals.forEach(petal => scene.remove(petal));
+                this.petals = [];
+            }
+        }
+        
+        // 添加自定义角色 - 支持速度设置
+        function addCustomCharacter() {
+            const name = document.getElementById('customName').value || `自定义角色${customCharacterId}`;
+            const escapeRate = parseInt(document.getElementById('customEscapeRate').value);
+            const nightVision = document.getElementById('customNightVision').value;
+            const energyConsumption = document.getElementById('customEnergyConsumption').value;
+            const speed = document.getElementById('customSpeed').value; // 新增速度设置
+            const color = document.getElementById('customColor').value;
+            
+            // 创建自定义角色ID
+            const customTypeId = `custom_${customCharacterId++}`;
+            
+            // 生成角色图标
+            const iconColor = encodeURIComponent(color);
+            const icon = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><circle cx='15' cy='15' r='10' fill='${iconColor}'/><circle cx='12' cy='13' r='2' fill='white'/><circle cx='18' cy='13' r='2' fill='white'/><path d='M12 20 Q15 22 18 20' stroke='white' stroke-width='2' fill='none'/></svg>`;
+            
+            // 能量消耗文本映射
+            const energyTextMap = {
+                'low': '低',
+                'medium': '中等',
+                'high': '高'
+            };
+            
+            // 夜视能力文本映射
+            const visionTextMap = {
+                'excellent': '优秀',
+                'good': '良好',
+                'average': '一般',
+                'poor': '较差',
+                'none': '极差(夜盲)'
+            };
+            
+            // 速度文本映射
+            const speedTextMap = {
+                'low': '低',
+                'medium': '中等',
+                'high': '高'
+            };
+            
+            // 添加到角色类型
+            characterTypes[customTypeId] = {
+                name,
+                escapeRate,
+                nightVision,
+                energyConsumption,
+                speed, // 新增速度属性
+                color,
+                icon,
+                dialogs: {
+                    danger: "危险！快躲开！",
+                    hungry: "我需要食物",
+                    eat: "真美味！",
+                    birth: "新生命来了！",
+                    night: "天黑了，快回家！",
+                    homeless: "我没有家..."
+                }
+            };
+            
+            // 初始化该角色的历史数据
+            chartData.characterHistory[customTypeId] = [];
+            
+            // 创建角色卡片
+            const card = document.createElement('div');
+            card.className = 'character-card';
+            card.dataset.type = customTypeId;
+            
+            card.innerHTML = `
+                <div class="character-name">${name}</div>
+                <div class="character-info">逃跑率: ${escapeRate}%</div>
+                <div class="character-info">夜视: ${visionTextMap[nightVision]}</div>
+                <div class="character-info">能量消耗: ${energyTextMap[energyConsumption]}</div>
+                <div class="character-info">速度: ${speedTextMap[speed]}</div>
+            `;
+            
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.character-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selectedCharacter = card.dataset.type;
+            });
+            
+            characterCardsContainer.appendChild(card);
+            
+            // 重置表单
+            document.getElementById('customName').value = `自定义角色${customCharacterId}`;
+        }
+        
+        // 图标导出功能
+        function exportIcons(type) {
+            // 创建临时画布用于绘制图标
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 500;
+            canvas.height = type === 'all' ? 800 : 500;
+            
+            let yPos = 20;
+            ctx.font = "16px Arial";
+            
+            if (type === 'people' || type === 'all') {
+                ctx.fillText("居民图标:", 20, yPos);
+                yPos += 30;
+                
+                // 绘制所有居民类型图标
+                Object.keys(characterTypes).forEach((key, index) => {
+                    const char = characterTypes[key];
+                    const x = 20 + (index % 5) * 100;
+                    const y = yPos + Math.floor(index / 5) * 80;
+                    
+                    // 绘制圆形
+                    ctx.beginPath();
+                    ctx.arc(x + 30, y + 30, 25, 0, Math.PI * 2);
+                    ctx.fillStyle = char.color;
+                    ctx.fill();
+                    
+                    // 绘制眼睛
+                    ctx.beginPath();
+                    ctx.arc(x + 20, y + 25, 5, 0, Math.PI * 2);
+                    ctx.arc(x + 40, y + 25, 5, 0, Math.PI * 2);
+                    ctx.fillStyle = "white";
+                    ctx.fill();
+                    
+                    // 绘制瞳孔
+                    ctx.beginPath();
+                    ctx.arc(x + 20, y + 25, 2, 0, Math.PI * 2);
+                    ctx.arc(x + 40, y + 25, 2, 0, Math.PI * 2);
+                    ctx.fillStyle = "black";
+                    ctx.fill();
+                    
+                    // 绘制嘴巴
+                    ctx.beginPath();
+                    ctx.arc(x + 30, y + 40, 10, 0, Math.PI);
+                    ctx.strokeStyle = "white";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    // 绘制名称
+                    ctx.fillStyle = "black";
+                    ctx.fillText(char.name, x + 5, y + 70, 90);
+                });
+                
+                yPos += Math.ceil(Object.keys(characterTypes).length / 5) * 80 + 20;
+            }
+            
+            if (type === 'resources' || type === 'all') {
+                ctx.fillText("资源图标:", 20, yPos);
+                yPos += 30;
+                
+                // 绘制芒果
+                ctx.beginPath();
+                ctx.arc(50, yPos + 20, 15, 0, Math.PI * 2);
+                ctx.fillStyle = "#FFC107";
+                ctx.fill();
+                ctx.fillStyle = "black";
+                ctx.fillText("芒果", 30, yPos + 50);
+                
+                // 绘制芒果树
+                ctx.fillStyle = "#8B4513";
+                ctx.fillRect(130, yPos - 20, 10, 40);
+                ctx.beginPath();
+                ctx.arc(135, yPos - 30, 20, 0, Math.PI * 2);
+                ctx.fillStyle = "#4CAF50";
+                ctx.fill();
+                ctx.fillStyle = "black";
+                ctx.fillText("芒果树", 115, yPos + 50);
+                
+                // 绘制房屋
+                ctx.fillStyle = "#8B4513";
+                ctx.fillRect(210, yPos - 10, 40, 30);
+                ctx.fillStyle = "#CD5C5C";
+                ctx.beginPath();
+                ctx.moveTo(210, yPos - 10);
+                ctx.lineTo(230, yPos - 30);
+                ctx.lineTo(250, yPos - 10);
+                ctx.fill();
+                ctx.fillStyle = "#A0522D";
+                ctx.fillRect(225, yPos + 10, 10, 20);
+                ctx.fillStyle = "black";
+                ctx.fillText("房屋", 215, yPos + 50);
+                
+                // 绘制食人花
+                ctx.fillStyle = "#4CAF50";
+                ctx.fillRect(290, yPos - 10, 5, 20);
+                ctx.fillStyle = "#F44336";
+                for (let i = 0; i < 4; i++) {
+                    const angle = (i / 4) * Math.PI * 2;
+                    ctx.beginPath();
+                    ctx.arc(
+                        292 + Math.cos(angle) * 10,
+                        yPos - 15 + Math.sin(angle) * 10,
+                        8,
+                        0,
+                        Math.PI * 2
+                    );
+                    ctx.fill();
+                }
+                ctx.fillStyle = "#FFEB3B";
+                ctx.beginPath();
+                ctx.arc(292, yPos - 15, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = "black";
+                ctx.fillText("食人花", 275, yPos + 50);
+            }
+            
+            // 创建下载链接
+            const link = document.createElement('a');
+            link.download = `mango_survival_${type}_icons.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // 模拟控制函数
+        function startSimulation() {
+            if (isRunning) return;
+            
+            isRunning = true;
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            addPersonBtn.disabled = false;
+            
+            // 如果是首次启动，初始化场景
+            if (people.length === 0 && mangoTrees.length === 0 && flowers.length === 0) {
+                initializeSimulation();
+            }
+            
+            const baseSpeed = parseFloat(document.getElementById('simulationSpeed').value);
+            const intervalTime = 100 / baseSpeed;
+            
+            simulationInterval = setInterval(() => {
+                // 更新时间
+                updateTimeOfDay();
+                
+                // 更新所有居民
+                people.forEach(person => person.update());
+                
+                // 食人花攻击 - 白天和夜晚都会攻击
+                flowers.forEach(flower => flower.attack());
+                
+                // 每小时更新一次统计
+                if (hour % 1 === 0) {
+                    updateStats();
+                }
+                
+                // 每天更新一次图表
+                if (hour < 0.25) {
+                    updateCharts();
+                }
+            }, intervalTime);
+        }
+        
+        function stopSimulation() {
+            if (!isRunning) return;
+            
+            isRunning = false;
+            clearInterval(simulationInterval);
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        }
+        
+        function resetSimulation() {
+            stopSimulation();
+            
+            // 清除所有实体
+            people.forEach(person => person.remove());
+            mangoTrees.forEach(tree => tree.remove());
+            flowers.forEach(flower => flower.remove());
+            mangos.forEach(mango => mango.remove());
+            houses.forEach(house => house.remove());
+            
+            // 清除所有对话框
+            document.querySelectorAll('.dialog').forEach(dialog => {
+                if (dialog.parentNode) dialog.parentNode.removeChild(dialog);
+            });
+            
+            // 重置变量
+            people = [];
+            mangoTrees = [];
+            flowers = [];
+            mangos = [];
+            houses = [];
+            day = 0;
+            hour = 0;
+            isNight = false;
+            
+            // 重置天空为白天
+            skybox.material.color.set(0x87CEEB);
+            ambientLight.intensity = 0.7;
+            directionalLight.intensity = 1.0;
+            
+            // 重置太阳图标
+            sunMoonElement.innerHTML = `
+                <svg width="30" height="30" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" fill="#FFEB3B" />
+                </svg>
+            `;
+            
+            // 重置统计
+            stats = {
+                currentPopulation: 0,
+                mangoCount: 0,
+                houseCount: 0,
+                eatenCount: 0,
+                energyDeathCount: 0,
+                nightDeathCount: 0,
+                escapeCount: 0,
+                birthCount: 0,
+                mutationCount: 0,
+                simulationTime: 0,
+                timeOfDay: "白天"
+            };
+            
+            // 重置图表数据
+            chartData.days = [];
+            chartData.population = [];
+            chartData.mangos = [];
+            chartData.houses = [];
+            chartData.eaten = [];
+            chartData.energyDeaths = [];
+            chartData.nightDeaths = [];
+            chartData.escapes = [];
+            chartData.births = [];
+            chartData.characterDistribution = {};
+            chartData.characterHistory = {};
+            
+            // 为初始角色类型初始化历史数据存储
+            Object.keys(characterTypes).forEach(type => {
+                chartData.characterHistory[type] = [];
+            });
+            
+            // 更新UI
+            updateStats();
+            updateAllCharts();
+        }
+        
+        function initializeSimulation() {
+            const initialPeople = parseInt(document.getElementById('initialPopulation').value);
+            const mangoTreeCount = parseInt(document.getElementById('mangoTrees').value);
+            const initialHouses = parseInt(document.getElementById('initialHouses').value);
+            const flowerCount = parseInt(document.getElementById('flowerCount').value);
+            
+            // 清空现有实体
+            people = [];
+            mangoTrees = [];
+            flowers = [];
+            mangos = [];
+            houses = [];
+            
+            // 为所有角色类型初始化历史数据
+            Object.keys(characterTypes).forEach(type => {
+                chartData.characterHistory[type] = [];
+            });
+            
+            // 创建初始房屋
+            for (let i = 0; i < initialHouses; i++) {
+                const pos = getRandomPosition([...mangoTrees, ...flowers]);
+                const house = new House(pos.x, pos.z);
+                houses.push(house);
+            }
+            stats.houseCount = houses.length;
+            
+            // 创建芒果树
+            for (let i = 0; i < mangoTreeCount; i++) {
+                mangoTrees.push(new MangoTree());
+            }
+            
+            // 创建食人花
+            for (let i = 0; i < flowerCount; i++) {
+                flowers.push(new Flower());
+            }
+            
+            // 创建初始居民 - 随机分配不同角色
+            const types = Object.keys(characterTypes);
+            for (let i = 0; i < initialPeople; i++) {
+                // 随机选择角色类型
+                const randomType = types[Math.floor(Math.random() * types.length)];
+                addPerson(randomType);
+            }
+        }
+        
+        function addPerson(type = selectedCharacter) {
+            const person = new Person(type);
+            people.push(person);
+            stats.currentPopulation = people.length;
+            updateStats();
+        }
+        
+        function updateStats() {
+            document.getElementById('currentPopulation').textContent = stats.currentPopulation;
+            document.getElementById('mangoCount').textContent = stats.mangoCount;
+            document.getElementById('houseCount').textContent = stats.houseCount;
+            document.getElementById('eatenCount').textContent = stats.eatenCount;
+            document.getElementById('energyDeathCount').textContent = stats.energyDeathCount;
+            document.getElementById('nightDeathCount').textContent = stats.nightDeathCount;
+            document.getElementById('escapeCount').textContent = stats.escapeCount;
+            document.getElementById('birthCount').textContent = stats.birthCount;
+            document.getElementById('mutationCount').textContent = stats.mutationCount;
+            document.getElementById('simulationTime').textContent = `${stats.simulationTime} 天`;
+        }
+        
+        function updateCharts() {
+            chartData.days.push(day);
+            chartData.population.push(people.length);
+            chartData.mangos.push(mangos.length);
+            chartData.houses.push(houses.length);
+            
+            // 计算当天的变化
+            const dailyEaten = stats.eatenCount - (chartData.eaten.reduce((a, b) => a + b, 0));
+            const dailyEnergy = stats.energyDeathCount - (chartData.energyDeaths.reduce((a, b) => a + b, 0));
+            const dailyNight = stats.nightDeathCount - (chartData.nightDeaths.reduce((a, b) => a + b, 0));
+            const dailyEscapes = stats.escapeCount - (chartData.escapes.reduce((a, b) => a + b, 0));
+            const dailyBirths = stats.birthCount - (chartData.births.reduce((a, b) => a + b, 0));
+            
+            chartData.eaten.push(dailyEaten);
+            chartData.energyDeaths.push(dailyEnergy);
+            chartData.nightDeaths.push(dailyNight);
+            chartData.escapes.push(dailyEscapes);
+            chartData.births.push(dailyBirths);
+            
+            // 计算角色分布并更新历史数据
+            const distribution = {};
+            for (const person of people) {
+                const type = person.type;
+                distribution[type] = (distribution[type] || 0) + 1;
+                
+                if (!chartData.characterHistory[type]) {
+                    chartData.characterHistory[type] = [];
+                }
+            }
+            
+            // 为每种角色类型记录当前数量
+            Object.keys(characterTypes).forEach(type => {
+                if (!chartData.characterHistory[type]) {
+                    chartData.characterHistory[type] = [];
+                }
+                chartData.characterHistory[type].push(distribution[type] || 0);
+            });
+            
+            chartData.characterDistribution = distribution;
+            
+            // 限制图表数据点数量，保持性能
+            const maxPoints = 30;
+            if (chartData.days.length > maxPoints) {
+                chartData.days.shift();
+                chartData.population.shift();
+                chartData.mangos.shift();
+                chartData.houses.shift();
+                chartData.eaten.shift();
+                chartData.energyDeaths.shift();
+                chartData.nightDeaths.shift();
+                chartData.escapes.shift();
+                chartData.births.shift();
+                
+                Object.keys(chartData.characterHistory).forEach(type => {
+                    chartData.characterHistory[type].shift();
+                });
+            }
+            
+            updateAllCharts();
+        }
+        
+        function updateAllCharts() {
+            // 更新居民数量图表
+            charts.populationChart.data.labels = chartData.days;
+            charts.populationChart.data.datasets[0].data = chartData.population;
+            charts.populationChart.update();
+            
+            // 更新资源图表
+            charts.resourcesChart.data.labels = chartData.days;
+            charts.resourcesChart.data.datasets[0].data = chartData.mangos;
+            charts.resourcesChart.data.datasets[1].data = chartData.houses;
+            charts.resourcesChart.update();
+            
+            // 更新死亡原因图表 - 新增夜间冻死
+            charts.deathChart.data.labels = chartData.days;
+            charts.deathChart.data.datasets[0].data = chartData.eaten;
+            charts.deathChart.data.datasets[1].data = chartData.energyDeaths;
+            charts.deathChart.data.datasets[2].data = chartData.nightDeaths;
+            charts.deathChart.data.datasets[3].data = chartData.escapes;
+            charts.deathChart.data.datasets[4].data = chartData.births;
+            charts.deathChart.update();
+            
+            // 更新角色分布图表
+            const datasets = [];
+            Object.keys(characterTypes).forEach(type => {
+                if (chartData.characterHistory[type] && 
+                    chartData.characterHistory[type].some(count => count > 0)) {
+                    datasets.push({
+                        label: characterTypes[type].name,
+                        data: chartData.characterHistory[type],
+                        borderColor: characterTypes[type].color,
+                        backgroundColor: `${characterTypes[type].color}80`,
+                        fill: true,
+                        tension: 0.3
+                    });
+                }
+            });
+            
+            charts.characterDistributionChart.data.labels = chartData.days;
+            charts.characterDistributionChart.data.datasets = datasets;
+            charts.characterDistributionChart.update();
+        }
+        
+        // 事件监听
+        startBtn.addEventListener('click', startSimulation);
+        stopBtn.addEventListener('click', stopSimulation);
+        resetBtn.addEventListener('click', resetSimulation);
+        addPersonBtn.addEventListener('click', () => addPerson());
+        addCustomCharacterBtn.addEventListener('click', addCustomCharacter);
+        
+        // 图标导出
+        exportPeopleBtn.addEventListener('click', () => exportIcons('people'));
+        exportResourcesBtn.addEventListener('click', () => exportIcons('resources'));
+        exportAllBtn.addEventListener('click', () => exportIcons('all'));
+        
+        // 角色选择
+        document.querySelectorAll('.character-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.character-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selectedCharacter = card.dataset.type;
+            });
+        });
+        
+        // 初始化3D场景
+        initThreeJS();
+        
+        // 初始化界面统计
+        updateStats();
+    </script>
+</body>
+</html>
