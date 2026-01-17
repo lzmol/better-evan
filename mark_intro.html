@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成绩分析助手 V2.0 发布说明</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        // 主题切换 JS 前置
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark')
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .animate-fade-in {
+                animation: fadeIn 0.8s ease-out forwards;
+                opacity: 0;
+            }
+            .animate-slide-up {
+                animation: slideUp 0.6s ease-out forwards;
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            .animate-pulse-soft {
+                animation: pulseSoft 2s infinite;
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 12px 20px rgba(0,0,0,0.1);
+            }
+            .btn-xl {
+                @apply w-full md:w-auto py-4 px-8 text-lg font-bold rounded-full transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1;
+            }
+            .card-clickable {
+                @apply cursor-pointer;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        @keyframes pulseSoft {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4f46e5',
+                        secondary: '#6366f1',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 text-slate-800 dark:text-slate-100 transition-colors duration-300;
+            }
+            header {
+                @apply bg-white/95 dark:bg-slate-800/95 shadow-sm dark:shadow-slate-700/20 transition-all duration-300;
+            }
+            .btn-theme {
+                @apply w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 hover:shadow-md;
+            }
+            .card-container {
+                @apply bg-white dark:bg-slate-800 shadow-md dark:shadow-slate-700/20 transition-all duration-300;
+            }
+            .card-inner {
+                @apply bg-indigo-50 dark:bg-slate-700/50 transition-all duration-300;
+            }
+            .modal-content {
+                @apply bg-white dark:bg-slate-800 shadow-2xl dark:shadow-slate-700/30 transition-all duration-300;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen font-sans">
+    <!-- 顶部导航 -->
+    <header class="sticky top-0 z-50 backdrop-blur-sm animate-fade-in">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <i class="fa fa-bar-chart text-primary text-2xl"></i>
+                <h1 class="text-xl md:text-2xl font-bold text-primary">成绩分析助手</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <!-- 主题切换按钮组 -->
+                <div class="flex gap-2">
+                    <button id="themeLight" class="btn-theme bg-white dark:bg-slate-700" title="明亮主题">
+                        <i class="fa fa-sun-o text-yellow-500"></i>
+                    </button>
+                    <button id="themeDark" class="btn-theme bg-slate-800 dark:bg-slate-900" title="暗黑主题">
+                        <i class="fa fa-moon-o text-slate-300"></i>
+                    </button>
+                    <button id="themeIndigo" class="btn-theme bg-indigo-600" title="靛蓝主题">
+                        <i class="fa fa-paint-brush text-white"></i>
+                    </button>
+                </div>
+                <button id="versionBtn" class="bg-indigo-100 dark:bg-slate-700 text-primary px-4 py-2 rounded-full flex items-center gap-2 hover:bg-indigo-200 dark:hover:bg-slate-600 transition-all duration-300 animate-pulse-soft">
+                    <i class="fa fa-info-circle"></i>
+                    <span>查看版本详情</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主横幅 -->
+    <section class="bg-gradient-to-r from-primary to-secondary text-white py-16 md:py-24 animate-fade-in">
+        <div class="container mx-auto px-4 text-center">
+            <h2 class="text-3xl md:text-5xl font-bold mb-4 text-shadow">成绩分析助手 V2.0 正式发布</h2>
+            <p class="text-lg md:text-xl text-indigo-100 max-w-3xl mx-auto mb-10">优化预测逻辑 · 新增智能预警 · 升级可视化体验</p>
+            
+            <!-- 立即体验大按钮 -->
+            <a href="mark.html" target="_blank" class="btn-xl bg-white text-primary mb-6">
+                <i class="fa fa-rocket mr-2"></i>立即体验
+            </a>
+
+            <div class="mt-4 flex flex-wrap justify-center gap-4">
+                <a href="#core-features" class="bg-white/20 text-white px-6 py-3 rounded-full font-semibold hover:bg-white/30 transition-all duration-300">
+                    探索核心功能
+                </a>
+                <a href="#usage-guide" class="bg-transparent border-2 border-white text-white px-6 py-3 rounded-full font-semibold hover:bg-white/10 transition-all duration-300">
+                    查看使用指南
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 版本概述 -->
+    <section class="py-12">
+        <div class="container mx-auto px-4">
+            <div class="max-w-3xl mx-auto animate-slide-up" style="animation-delay: 0.1s">
+                <h3 class="text-2xl font-bold text-center mb-8 text-primary flex items-center justify-center gap-2">
+                    <i class="fa fa-file-text-o"></i>版本概述
+                </h3>
+                <div class="card-container rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+                        <div class="text-center p-4 card-container rounded-lg shadow-sm">
+                            <p class="text-sm text-slate-500 dark:text-slate-400 mb-1">版本号</p>
+                            <p class="text-xl font-semibold text-primary">V2.0</p>
+                        </div>
+                        <div class="text-center p-4 card-container rounded-lg shadow-sm">
+                            <p class="text-sm text-slate-500 dark:text-slate-400 mb-1">更新日期</p>
+                            <p class="text-xl font-semibold text-primary">2025.01.15</p>
+                        </div>
+                        <div class="text-center p-4 card-container rounded-lg shadow-sm">
+                            <p class="text-sm text-slate-500 dark:text-slate-400 mb-1">核心定位</p>
+                            <p class="text-lg font-semibold text-primary">精准把握学习趋势</p>
+                        </div>
+                    </div>
+                    <p class="text-slate-600 dark:text-slate-300 text-center">
+                        本次更新聚焦成绩预测精度与用户体验优化，新增智能预警机制，升级数据可视化效果，
+                        帮助用户更直观地发现薄弱环节、预判学习趋势。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 核心功能更新 -->
+    <section id="core-features" class="py-16 bg-slate-50 dark:bg-slate-900/50 transition-colors duration-300">
+        <div class="container mx-auto px-4">
+            <h3 class="text-2xl font-bold text-center mb-12 text-primary flex items-center justify-center gap-2 animate-slide-up">
+                <i class="fa fa-star"></i>核心功能更新
+            </h3>
+
+            <!-- 功能卡片1：智能预警 -->
+            <div class="max-w-4xl mx-auto mb-16 card-container rounded-2xl overflow-hidden animate-slide-up card-clickable" style="animation-delay: 0.2s" data-target="modal1">
+                <div class="md:flex">
+                    <div class="md:w-1/3 card-inner p-6 flex items-center justify-center">
+                        <div class="w-24 h-24 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                            <i class="fa fa-exclamation-triangle text-red-500 text-4xl"></i>
+                        </div>
+                    </div>
+                    <div class="md:w-2/3 p-8">
+                        <h4 class="text-xl font-bold text-primary mb-4">低于平均值智能预警</h4>
+                        <ul class="space-y-3 text-slate-600 dark:text-slate-300">
+                            <li class="flex items-start gap-2">
+                                <i class="fa fa-check-circle text-green-500 mt-1"></i>
+                                <span>成绩低于历史平均值时，卡片自动触发预警（淡红色背景+红色描边+文字提示）</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa fa-check-circle text-green-500 mt-1"></i>
+                                <span>触发条件：至少2次成绩记录，系统自动计算平均分，无需手动设置阈值</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa fa-check-circle text-green-500 mt-1"></i>
+                                <span>实时同步预警状态，录入新成绩后即时更新，保障时效性</span>
+                            </li>
+                        </ul>
+                        <p class="mt-4 text-sm text-primary flex items-center gap-1">
+                            <i class="fa fa-angle-right"></i> 点击查看详情
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 功能卡片2：预测算法升级 -->
+            <div class="max-w-4xl mx-auto mb-16 card-container rounded-2xl overflow-hidden animate-slide-up card-clickable" style="animation-delay: 0.3s" data-target="modal2">
+                <div class="md:flex flex-row-reverse">
+                    <div class="md:w-1/3 card-inner p-6 flex items-center justify-center">
+                        <div class="w-24 h-24 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                            <i class="fa fa-line-chart text-green-500 text-4xl"></i>
+                        </div>
+                    </div>
+                    <div class="md:w-2/3 p-8">
+                        <h4 class="text-xl font-bold text-primary mb-4">峰值均值回归预测算法升级</h4>
+                        <ul class="space-y-3 text-slate-600 dark:text-slate-300">
+                            <li class="flex items-start gap-2">
+                                <i class="fa fa-check-circle text-green-500 mt-1"></i>
+                                <span>重构逻辑：将「整体均值」改为「峰值均值」（提取高于平均分的成绩计算）</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa fa-check-circle text-green-500 mt-1"></i>
+                                <span>预测模型：<code class="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">预测结果 = 峰值均值×0.6 + 同比增长预测×0.4</code></span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa fa-check-circle text-green-500 mt-1"></i>
+                                <span>约束机制：0-满分区间限制，需至少3次成绩记录触发预测</span>
+                            </li>
+                        </ul>
+                        <p class="mt-4 text-sm text-primary flex items-center gap-1">
+                            <i class="fa fa-angle-right"></i> 点击查看详情
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 功能卡片3：数据可视化增强 -->
+            <div class="max-w-4xl mx-auto mb-16 card-container rounded-2xl overflow-hidden animate-slide-up card-clickable" style="animation-delay: 0.4s" data-target="modal3">
+                <div class="md:flex">
+                    <div class="md:w-1/3 card-inner p-6 flex items-center justify-center">
+                        <div class="w-24 h-24 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                            <i class="fa fa-pie-chart text-blue-500 text-4xl"></i>
+                        </div>
+                    </div>
+                    <div class="md:w-2/3 p-8">
+                        <h4 class="text-xl font-bold text-primary mb-4">数据可视化增强</h4>
+                        <ul class="space-y-3 text-slate-600 dark:text-slate-300">
+                            <li class="flex items-start gap-2">
+                                <i class="fa fa-check-circle text-green-500 mt-1"></i>
+                                <span>成绩趋势图：新增「整体均值」（红色虚线）与「峰值均值」（绿色细虚线）参考线</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa fa-check-circle text-green-500 mt-1"></i>
+                                <span>增速图表：分数变化标注正负符号，增长率条形图按正负区分绿/红色</span>
+                            </li>
+                        </ul>
+                        <p class="mt-4 text-sm text-primary flex items-center gap-1">
+                            <i class="fa fa-angle-right"></i> 点击查看详情
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 功能卡片4：基础功能迭代 -->
+            <div class="max-w-4xl mx-auto card-container rounded-2xl overflow-hidden animate-slide-up card-clickable" style="animation-delay: 0.5s" data-target="modal4">
+                <div class="md:flex flex-row-reverse">
+                    <div class="md:w-1/3 card-inner p-6 flex items-center justify-center">
+                        <div class="w-24 h-24 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                            <i class="fa fa-cogs text-purple-500 text-4xl"></i>
+                        </div>
+                    </div>
+                    <div class="md:w-2/3 p-8">
+                        <h4 class="text-xl font-bold text-primary mb-4">基础功能迭代</h4>
+                        <ul class="space-y-3 text-slate-600 dark:text-slate-300">
+                            <li class="flex items-start gap-2">
+                                <i class="fa fa-check-circle text-green-500 mt-1"></i>
+                                <span>保留核心功能：成绩录入、数据导出（JSON/图片）、综合分析、本地存储</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa fa-check-circle text-green-500 mt-1"></i>
+                                <span>优化卡片排序逻辑，提升预警状态视觉优先级，快速筛选薄弱学科</span>
+                            </li>
+                        </ul>
+                        <p class="mt-4 text-sm text-primary flex items-center gap-1">
+                            <i class="fa fa-angle-right"></i> 点击查看详情
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 使用指南 -->
+    <section id="usage-guide" class="py-16">
+        <div class="container mx-auto px-4">
+            <h3 class="text-2xl font-bold text-center mb-12 text-primary flex items-center justify-center gap-2 animate-slide-up">
+                <i class="fa fa-book"></i>使用指南
+            </h3>
+
+            <div class="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 animate-slide-up" style="animation-delay: 0.6s">
+                <div class="card-container rounded-xl p-6 card-hover border border-slate-200 dark:border-slate-700">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
+                            <i class="fa fa-database text-primary"></i>
+                        </div>
+                        <h4 class="text-lg font-semibold text-primary">数据准备</h4>
+                    </div>
+                    <p class="text-slate-600 dark:text-slate-300">为目标学科录入至少2次成绩（触发预警）或3次成绩（触发预测），系统自动完成计算。</p>
+                </div>
+
+                <div class="card-container rounded-xl p-6 card-hover border border-slate-200 dark:border-slate-700">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                            <i class="fa fa-eye text-red-600"></i>
+                        </div>
+                        <h4 class="text-lg font-semibold text-primary">预警查看</h4>
+                    </div>
+                    <p class="text-slate-600 dark:text-slate-300">首页卡片列表中，淡红色背景卡片即为低于平均值的学科，点击可进入详情页查看分析。</p>
+                </div>
+
+                <div class="card-container rounded-xl p-6 card-hover border border-slate-200 dark:border-slate-700">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                            <i class="fa fa-magnifying-glass text-green-600"></i>
+                        </div>
+                        <h4 class="text-lg font-semibold text-primary">预测查看</h4>
+                    </div>
+                    <p class="text-slate-600 dark:text-slate-300">详情页「下一次成绩预测」栏目显示综合预测结果，图表区可查看均值参考线与趋势对比。</p>
+                </div>
+
+                <div class="card-container rounded-xl p-6 card-hover border border-slate-200 dark:border-slate-700">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                            <i class="fa fa-download text-blue-600"></i>
+                        </div>
+                        <h4 class="text-lg font-semibold text-primary">数据导出</h4>
+                    </div>
+                    <p class="text-slate-600 dark:text-slate-300">支持单学科/综合分析数据的JSON导出，及图表+数据的图片导出，便于存档与分享。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 注意事项 -->
+    <section class="py-12 bg-slate-50 dark:bg-slate-900/50 transition-colors duration-300">
+        <div class="container mx-auto px-4">
+            <div class="max-w-3xl mx-auto animate-slide-up" style="animation-delay: 0.7s">
+                <h3 class="text-2xl font-bold text-center mb-8 text-primary flex items-center justify-center gap-2">
+                    <i class="fa fa-exclamation-circle"></i>注意事项
+                </h3>
+                <div class="card-container rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+                    <ul class="space-y-4 text-slate-600 dark:text-slate-300">
+                        <li class="flex items-start gap-3">
+                            <i class="fa fa-lock text-primary mt-1"></i>
+                            <span>预警与预测功能基于本地历史数据计算，数据仅存储在浏览器本地，保障隐私安全。</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fa fa-bar-chart text-primary mt-1"></i>
+                            <span>若需提高预测精度，建议录入至少5次连续成绩，确保峰值数据集与增长趋势的代表性。</span>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fa fa-refresh text-primary mt-1"></i>
+                            <span>导入历史数据后，系统将自动重新计算均值、峰值与预警状态，无需手动刷新。</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="bg-primary py-8">
+        <div class="container mx-auto px-4 text-center">
+            <p class="mb-2 text-white">成绩分析助手 V2.0 | 2025年1月15日发布</p>
+            <p class="text-indigo-200 text-sm">数据安全优先 · 体验持续优化</p>
+        </div>
+    </footer>
+
+    <!-- 版本详情模态框 -->
+    <div id="versionModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden animate-fade-in">
+        <div class="modal-content rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-primary">版本详情 V2.0</h3>
+                <button class="close-modal text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="space-y-6 text-slate-700 dark:text-slate-300">
+                <div>
+                    <h4 class="text-lg font-semibold text-primary mb-2">一、版本概述</h4>
+                    <p>版本号: V2.0 | 更新日期: 2025年1月15日 | 核心定位: 优化成绩预测逻辑，新增智能预警机制，提升数据可视化体验，帮助用户更精准把握学习趋势。</p>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold text-primary mb-2">二、核心功能更新</h4>
+                    <div class="pl-4 space-y-4">
+                        <div>
+                            <p class="font-medium">1. 低于平均值智能预警</p>
+                            <ul class="pl-6 mt-2 space-y-1 list-disc">
+                                <li>功能描述：成绩低于历史平均值时，卡片自动触发预警（淡红色背景+红色描边+文字提示）</li>
+                                <li>触发条件：至少2次成绩记录，系统自动计算平均分，无需手动设置阈值</li>
+                                <li>交互优化：预警状态实时同步，录入新成绩后即时更新</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <p class="font-medium">2. 峰值均值回归预测算法升级</p>
+                            <ul class="pl-6 mt-2 space-y-1 list-disc">
+                                <li>算法迭代：将「整体均值」改为「峰值均值」（提取高于平均分的成绩计算）</li>
+                                <li>预测模型：预测结果 = 峰值均值×0.6 + 同比增长预测×0.4</li>
+                                <li>约束机制：0-满分区间限制，需至少3次成绩记录触发预测</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <p class="font-medium">3. 数据可视化增强</p>
+                            <ul class="pl-6 mt-2 space-y-1 list-disc">
+                                <li>成绩趋势图：新增「整体均值」（红色虚线）与「峰值均值」（绿色细虚线）参考线</li>
+                                <li>增速图表：分数变化标注正负符号，增长率条形图按正负区分绿/红色</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <p class="font-medium">4. 基础功能迭代</p>
+                            <ul class="pl-6 mt-2 space-y-1 list-disc">
+                                <li>保留核心功能：成绩录入、数据导出、综合分析、本地存储</li>
+                                <li>优化卡片排序逻辑，提升预警状态视觉优先级</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold text-primary mb-2">三、技术原理说明</h4>
+                    <ul class="pl-6 space-y-1 list-disc">
+                        <li>峰值提取逻辑：遍历历史成绩，筛选高于整体平均分的记录，排除偶然低分干扰</li>
+                        <li>同比增长计算：基于最近两次成绩差值计算增长率，权重占比40%</li>
+                        <li>预警触发机制：实时监听数据变化，动态调整卡片样式与提示文本</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold text-primary mb-2">四、使用指南与注意事项</h4>
+                    <ul class="pl-6 space-y-1 list-disc">
+                        <li>数据准备：2次成绩触发预警，3次成绩触发预测</li>
+                        <li>隐私安全：所有数据仅存储在浏览器本地，不进行云端上传</li>
+                        <li>精度建议：录入至少5次连续成绩，提升预测准确性</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-8 text-center">
+                <button class="close-modal bg-primary text-white px-6 py-3 rounded-full font-semibold hover:bg-secondary transition-all duration-300">
+                    确认了解
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 功能卡片详情模态框 1 -->
+    <div id="modal1" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden animate-fade-in">
+        <div class="modal-content rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-primary">低于平均值智能预警</h3>
+                <button class="close-modal text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="space-y-4 text-slate-700 dark:text-slate-300">
+                <div class="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                    <h4 class="font-semibold text-red-600 mb-2">功能核心价值</h4>
+                    <p>及时发现成绩下滑趋势，避免薄弱学科被忽视，帮助用户针对性补强学习短板。</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-primary mb-2">触发逻辑详解</h4>
+                    <ol class="pl-6 space-y-2 list-decimal">
+                        <li>用户录入 ≥2 次学科成绩后，系统自动计算历史平均分 <code class="bg-slate-100 dark:bg-slate-700 px-1 rounded">avg = (score1 + score2 + ... + scoren) / n</code></li>
+                        <li>当最新一次成绩 <code class="bg-slate-100 dark:bg-slate-700 px-1 rounded">score_new < avg</code> 时，触发预警</li>
+                        <li>预警视觉表现：卡片背景变为淡红色，边框加粗为红色，顶部显示「成绩预警」提示文字</li>
+                    </ol>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-primary mb-2">交互细节</h4>
+                    <ul class="pl-6 space-y-1 list-disc">
+                        <li>录入新成绩后，预警状态实时更新，无需手动刷新页面</li>
+                        <li>预警卡片在列表中自动置顶，提升视觉优先级</li>
+                        <li>点击预警卡片可快速查看成绩对比分析</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-6 text-right">
+                <button class="close-modal bg-primary text-white px-6 py-3 rounded-full font-semibold hover:bg-secondary transition-all duration-300">
+                    关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 功能卡片详情模态框 2 -->
+    <div id="modal2" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden animate-fade-in">
+        <div class="modal-content rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-primary">峰值均值回归预测算法升级</h3>
+                <button class="close-modal text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="space-y-4 text-slate-700 dark:text-slate-300">
+                <div class="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <h4 class="font-semibold text-green-600 mb-2">算法升级亮点</h4>
+                    <p>摒弃传统「整体均值」预测的局限性，聚焦用户「最佳水平区间」，让预测结果更贴合真实潜力。</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-primary mb-2">核心计算步骤</h4>
+                    <ol class="pl-6 space-y-2 list-decimal">
+                        <li>计算历史成绩整体平均分 <code class="bg-slate-100 dark:bg-slate-700 px-1 rounded">avg_total</code></li>
+                        <li>筛选出所有 <code class="bg-slate-100 dark:bg-slate-700 px-1 rounded">score > avg_total</code> 的成绩，计算峰值均值 <code class="bg-slate-100 dark:bg-slate-700 px-1 rounded">avg_peak</code></li>
+                        <li>计算最近两次成绩的同比增长率 <code class="bg-slate-100 dark:bg-slate-700 px-1 rounded">growth = (score_last - score_prev) / score_prev</code></li>
+                        <li>综合预测：<code class="bg-slate-100 dark:bg-slate-700 px-1 rounded">predict = avg_peak × 0.6 + (score_last × (1 + growth)) × 0.4</code></li>
+                        <li>区间约束：若 <code class="bg-slate-100 dark:bg-slate-700 px-1 rounded">predict < 0</code> 则取 0；若 <code class="bg-slate-100 dark:bg-slate-700 px-1 rounded">predict > 满分</code> 则取满分</li>
+                    </ol>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-primary mb-2">触发条件</h4>
+                    <p>需录入 ≥3 次有效成绩，且峰值成绩数量 ≥1，否则不显示预测结果。</p>
+                </div>
+            </div>
+            <div class="mt-6 text-right">
+                <button class="close-modal bg-primary text-white px-6 py-3 rounded-full font-semibold hover:bg-secondary transition-all duration-300">
+                    关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 功能卡片详情模态框 3 -->
+    <div id="modal3" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden animate-fade-in">
+        <div class="modal-content rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-primary">数据可视化增强</h3>
+                <button class="close-modal text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="space-y-4 text-slate-700 dark:text-slate-300">
+                <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <h4 class="font-semibold text-blue-600 mb-2">可视化升级目标</h4>
+                    <p>让数据趋势更直观，帮助用户快速识别成绩波动规律与强弱项。</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-primary mb-2">1. 成绩趋势图优化</h4>
+                    <ul class="pl-6 space-y-1 list-disc">
+                        <li>新增 <span class="text-red-500 font-medium">红色虚线</span> 代表「整体均值」，展示基准水平</li>
+                        <li>新增 <span class="text-green-500 font-medium">绿色细虚线</span> 代表「峰值均值」，展示潜力水平</li>
+                        <li>成绩数据点使用不同颜色区分：高于峰值均值为绿色，介于两者之间为蓝色，低于整体均值为红色</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-primary mb-2">2. 增速图表优化</h4>
+                    <ul class="pl-6 space-y-1 list-disc">
+                        <li>每次成绩变化量标注正负符号，清晰展示上升/下降趋势</li>
+                        <li>增长率条形图：正增长为绿色，负增长为红色，零增长为灰色</li>
+                        <li>支持鼠标悬停查看具体数值与增长率详情</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-6 text-right">
+                <button class="close-modal bg-primary text-white px-6 py-3 rounded-full font-semibold hover:bg-secondary transition-all duration-300">
+                    关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 功能卡片详情模态框 4 -->
+    <div id="modal4" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden animate-fade-in">
+        <div class="modal-content rounded-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-primary">基础功能迭代</h3>
+                <button class="close-modal text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="space-y-4 text-slate-700 dark:text-slate-300">
+                <div class="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                    <h4 class="font-semibold text-purple-600 mb-2">功能迭代重点</h4>
+                    <p>保留核心实用功能，优化交互逻辑与视觉层级，提升使用效率。</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-primary mb-2">1. 核心功能保留</h4>
+                    <ul class="pl-6 space-y-1 list-disc">
+                        <li><strong>成绩录入</strong>：支持手动输入分数、考试名称、考试日期，支持批量导入</li>
+                        <li><strong>数据导出</strong>：支持 JSON 格式数据导出、图表图片导出（PNG/SVG 格式）</li>
+                        <li><strong>综合分析</strong>：学科排名、总分趋势、单科强弱分析</li>
+                        <li><strong>本地存储</strong>：数据存储在浏览器 localStorage，无需登录，隐私安全</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-primary mb-2">2. 交互体验优化</h4>
+                    <ul class="pl-6 space-y-1 list-disc">
+                        <li>卡片排序逻辑：预警卡片置顶 → 预测卡片 → 普通卡片</li>
+                        <li>新增「快速筛选」按钮，可按预警状态、学科类型筛选卡片</li>
+                        <li>优化表单交互，录入成绩后自动计算并刷新分析结果</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="mt-6 text-right">
+                <button class="close-modal bg-primary text-white px-6 py-3 rounded-full font-semibold hover:bg-secondary transition-all duration-300">
+                    关闭
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 主题切换逻辑
+        const themeLight = document.getElementById('themeLight');
+        const themeDark = document.getElementById('themeDark');
+        const themeIndigo = document.getElementById('themeIndigo');
+
+        themeLight.addEventListener('click', () => {
+            document.documentElement.classList.remove('dark');
+            localStorage.theme = 'light';
+        });
+
+        themeDark.addEventListener('click', () => {
+            document.documentElement.classList.add('dark');
+            localStorage.theme = 'dark';
+        });
+
+        themeIndigo.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+            localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+            // 靛蓝主题特殊处理：强制主色调
+            document.body.classList.toggle('theme-indigo');
+        });
+
+        // 版本详情模态框控制
+        const versionBtn = document.getElementById('versionBtn');
+        const versionModal = document.getElementById('versionModal');
+        const closeModalBtns = document.querySelectorAll('.close-modal');
+
+        const openModal = (modal) => {
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        };
+
+        const closeAllModals = () => {
+            document.querySelectorAll('.fixed.inset-0').forEach(modal => {
+                modal.classList.add('hidden');
+            });
+            document.body.style.overflow = 'auto';
+        };
+
+        versionBtn.addEventListener('click', () => openModal(versionModal));
+        closeModalBtns.forEach(btn => btn.addEventListener('click', closeAllModals));
+
+        // 点击模态框外部关闭
+        document.querySelectorAll('.fixed.inset-0').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeAllModals();
+            });
+        });
+
+        // 功能卡片点击打开详情模态框
+        document.querySelectorAll('.card-clickable').forEach(card => {
+            card.addEventListener('click', () => {
+                const targetId = card.getAttribute('data-target');
+                const targetModal = document.getElementById(targetId);
+                if (targetModal) openModal(targetModal);
+            });
+        });
+
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html>
