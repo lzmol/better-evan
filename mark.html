@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>成绩分析助手</title>
+    <title>成绩分析助手（带预警+峰值回归）</title>
+    <link rel="icon" type="image/png" href="mark.png" sizes="16x16">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
@@ -79,6 +80,10 @@
                         <p id="detail-last-score" class="text-2xl font-semibold text-green-600">--</p>
                     </div>
                 </div>
+                <div class="mt-4">
+                    <p class="text-gray-500 text-sm">下一次成绩预测（峰值均值回归）</p>
+                    <p id="detail-predict-score" class="text-xl font-semibold text-orange-500">--</p>
+                </div>
             </div>
 
             <div id="chart-container" class="bg-white rounded-xl shadow-md p-6 mb-6">
@@ -111,7 +116,6 @@
             </div>
 
             <div id="synthesize-export-container" class="bg-white rounded-xl shadow-md p-6 mb-6">
-                <!-- 修复：变量名拼写错误 -->
                 <h2 id="synthesize-detail-title" class="text-2xl font-bold text-gray-800 mb-4">综合分析名称</h2>
             </div>
 
@@ -249,6 +253,7 @@
         const detailTitle = document.getElementById('detail-title');
         const detailFullScore = document.getElementById('detail-full-score');
         const detailLastScore = document.getElementById('detail-last-score');
+        const detailPredictScore = document.getElementById('detail-predict-score');
         const addScoreBtn = document.getElementById('add-score-btn');
         const scoreModal = document.getElementById('score-modal');
         const closeScoreModalBtn = document.getElementById('close-score-modal-btn');
@@ -269,7 +274,6 @@
         const importBtn = document.getElementById('import-btn');
         const exportAllBtn = document.getElementById('export-all-btn');
         const fileInput = document.getElementById('file-input');
-        // 修复：添加综合详情标题 DOM 元素引用
         const synthesizeDetailTitle = document.getElementById('synthesize-detail-title');
 
         // 初始化
@@ -325,6 +329,42 @@
             }
         }
 
+        // 辅助函数：提取成绩峰值（高于平均值的点）
+        function getPeakScores(scores) {
+            if (scores.length < 3) return [];
+            const avg = scores.reduce((sum, s) => sum + s.value, 0) / scores.length;
+            return scores.filter(s => s.value > avg).map(s => s.value);
+        }
+
+        // 核心：峰值均值回归+同比增长 成绩预测算法
+        function predictNextScore(scores, fullScore) {
+            // 至少需要3次成绩才进行预测
+            if (scores.length < 3) return null;
+            
+            // 1. 计算整体平均值
+            const totalAvg = scores.reduce((sum, s) => sum + s.value, 0) / scores.length;
+            // 2. 提取所有峰值（高于整体平均值的成绩）并计算峰值均值
+            const peakScores = getPeakScores(scores);
+            const peakAvg = peakScores.length > 0 ? peakScores.reduce((sum, val) => sum + val, 0) / peakScores.length : totalAvg;
+            // 3. 计算最近两次的同比增长率
+            const lastScore = scores[scores.length - 1].value;
+            const prevScore = scores[scores.length - 2].value;
+            const growthRate = (lastScore - prevScore) / prevScore;
+            // 4. 峰值均值回归修正：权重 峰值均值0.6 + 增长预测0.4
+            const growthPredict = lastScore * (1 + growthRate);
+            const predictScore = peakAvg * 0.6 + growthPredict * 0.4;
+            // 5. 限制在0-满分之间
+            return Math.round(Math.max(0, Math.min(predictScore, fullScore)));
+        }
+
+        // 辅助函数：判断是否低于平均值
+        function isBelowAverage(scores) {
+            if (scores.length < 2) return false;
+            const avg = scores.reduce((sum, s) => sum + s.value, 0) / scores.length;
+            const lastScore = scores[scores.length - 1].value;
+            return lastScore < avg;
+        }
+
         // 渲染卡片
         function renderCards() {
             cardsContainer.innerHTML = '';
@@ -334,12 +374,28 @@
             }
             exams.forEach(exam => {
                 const card = document.createElement('div');
-                card.className = 'bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-1 relative';
+                // 判断是否低于平均值，添加淡红色预警背景
+                const belowAvg = isBelowAverage(exam.scores);
+                const cardClass = belowAvg 
+                    ? 'bg-red-50 border border-red-100 rounded-xl shadow-md p-6 hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-1 relative'
+                    : 'bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-all cursor-pointer transform hover:-translate-y-1 relative';
+                
+                card.className = cardClass;
+                
                 if (isSelecting) {
                     card.classList.add('border-2', selectedExamIds.includes(exam.id) ? 'border-blue-500' : 'border-transparent');
                 }
+                
                 const avgScore = exam.scores.length > 0 ? (exam.scores.reduce((sum, s) => sum + s.value, 0) / exam.scores.length).toFixed(1) : '0';
                 const latestDate = exam.scores.length > 0 ? exam.scores[exam.scores.length - 1].date : '无';
+                // 计算预测分数
+                const predictScore = predictNextScore(exam.scores, exam.fullScore);
+                const predictText = predictScore !== null ? `${predictScore} (预测)` : '数据不足';
+                const predictClass = predictScore !== null ? 'text-orange-500' : 'text-gray-400';
+
+                // 预警提示文本
+                const warningText = belowAvg ? `<p class="text-xs text-red-500 mt-1">⚠️ 最近成绩低于平均值</p>` : '';
+
                 card.innerHTML = `
                     ${isSelecting ? `<div class="absolute top-4 right-4 w-6 h-6 rounded-full border-2 border-gray-300 flex items-center justify-center ${selectedExamIds.includes(exam.id) ? 'bg-blue-500 border-blue-500 text-white' : 'bg-white text-transparent'}" data-id="${exam.id}">✓</div>` : ''}
                     <h3 class="text-lg font-bold text-gray-800 mb-2">${exam.name}</h3>
@@ -350,6 +406,9 @@
                             <span class="text-sm font-medium text-blue-600">平均分: ${avgScore}</span>
                             <br>
                             <span class="text-xs text-gray-400">最新: ${latestDate}</span>
+                            <br>
+                            <span class="text-xs font-medium ${predictClass}">${predictText}</span>
+                            ${warningText}
                         </div>
                         <i class="fa fa-chevron-right text-gray-300"></i>
                     </div>
@@ -378,7 +437,7 @@
             });
         }
 
-        // 渲染综合卡片（核心修复：确保点击事件正确绑定）
+        // 渲染综合卡片
         function renderSynthesizeCards() {
             synthesizeCardsContainer.innerHTML = '';
             if (synthesizeExams.length === 0) {
@@ -396,9 +455,7 @@
                         <i class="fa fa-chevron-right text-purple-300"></i>
                     </div>
                 `;
-                // 修复：确保每次渲染都绑定点击事件
                 card.addEventListener('click', () => {
-                    console.log('综合卡片点击', item.id);
                     goToSynthesizeDetail(item.id);
                 });
                 synthesizeCardsContainer.appendChild(card);
@@ -414,6 +471,10 @@
             detailFullScore.textContent = exam.fullScore;
             detailLastScore.textContent = exam.scores.length > 0 ? exam.scores[exam.scores.length - 1].value : '--';
             
+            // 显示预测分数
+            const predictScore = predictNextScore(exam.scores, exam.fullScore);
+            detailPredictScore.textContent = predictScore !== null ? `${predictScore} (峰值均值回归+同比增长)` : '需至少3次成绩记录';
+            
             renderCharts(exam.scores, exam.fullScore);
             
             homePage.classList.add('hidden');
@@ -421,7 +482,7 @@
             synthesizeDetailPage.classList.add('hidden');
         }
 
-        // 进入综合详情页（修复：确保变量引用正确）
+        // 进入综合详情页
         function goToSynthesizeDetail(id) {
             const item = synthesizeExams.find(e => e.id === id);
             if (!item) {
@@ -455,26 +516,63 @@
             
             const labels = scores.map(s => s.date);
             const data = scores.map(s => s.value);
+            const avg = scores.reduce((sum, s) => sum + s.value, 0) / scores.length;
+            const peaks = scores.filter(s => s.value > avg).map(s => s.value);
+            const peakAvg = peaks.length > 0 ? peaks.reduce((sum, val) => sum + val, 0) / peaks.length : avg;
             
-            // 成绩折线图
+            // 成绩折线图 - 新增平均值和峰值均值参考线
             const scoreCtx = document.getElementById('score-chart').getContext('2d');
             chartInstances.score = new Chart(scoreCtx, {
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [{
-                        label: '成绩',
-                        data: data,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        tension: 0.4,
-                        fill: true
-                    }]
+                    datasets: [
+                        {
+                            label: '成绩',
+                            data: data,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '整体均值',
+                            data: Array(labels.length).fill(avg),
+                            borderColor: '#ef4444',
+                            borderWidth: 1,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            label: '峰值均值',
+                            data: Array(labels.length).fill(peakAvg),
+                            borderColor: '#10b981',
+                            borderWidth: 1,
+                            borderDash: [2, 2],
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
-                    plugins: { title: { display: true, text: '成绩变化趋势' } },
-                    scales: { y: { beginAtZero: true, max: fullScore } }
+                    plugins: { 
+                        title: { display: true, text: '成绩变化趋势' },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false
+                        }
+                    },
+                    scales: { 
+                        y: { 
+                            beginAtZero: true, 
+                            max: fullScore,
+                            ticks: {
+                                stepSize: fullScore / 10
+                            }
+                        } 
+                    }
                 }
             });
             
@@ -497,7 +595,16 @@
                 },
                 options: {
                     responsive: true,
-                    plugins: { title: { display: true, text: '分数增速分析' } }
+                    plugins: { title: { display: true, text: '分数增速分析' } },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return value > 0 ? `+${value}` : value;
+                                }
+                            }
+                        }
+                    }
                 }
             });
         }
@@ -738,6 +845,7 @@
             scoreModal.classList.add('hidden');
             saveData();
             goToDetail(currentExamId);
+            renderCards(); // 重新渲染卡片，更新预警状态
         });
 
         // 导出当前考试数据
@@ -766,7 +874,6 @@
             const dataStr = JSON.stringify(data, null, 2);
             const blob = new Blob([dataStr], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
             a.href = url;
             a.download = `${item.name}_综合数据.json`;
             a.click();
@@ -776,8 +883,9 @@
         // 导出图片
         exportImageBtn.addEventListener('click', () => {
             const exam = exams.find(e => e.id === currentExamId);
-            if (!exam) return;
+            if (!exam || !chartInstances.score) return;
 
+            // 创建临时容器
             const tempDiv = document.createElement('div');
             tempDiv.style.width = '100%';
             tempDiv.style.maxWidth = '800px';
@@ -786,7 +894,11 @@
             tempDiv.style.padding = '20px';
             tempDiv.style.borderRadius = '12px';
             tempDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-            
+            tempDiv.style.position = 'absolute';
+            tempDiv.style.top = '-9999px'; // 隐藏在视口外
+            document.body.appendChild(tempDiv);
+
+            // 添加标题和信息
             const title = document.createElement('h2');
             title.textContent = exam.name;
             title.style.textAlign = 'center';
@@ -800,31 +912,49 @@
             infoDiv.innerHTML = `
                 <div><p>满分: ${exam.fullScore}</p></div>
                 <div><p>最近一次成绩: ${exam.scores.length > 0 ? exam.scores[exam.scores.length - 1].value : '--'}</p></div>
+                <div><p>预测成绩: ${predictNextScore(exam.scores, exam.fullScore) || '--'}</p></div>
             `;
             tempDiv.appendChild(infoDiv);
-            
-            const scoreCanvas = document.getElementById('score-chart');
-            const speedCanvas = document.getElementById('speed-chart');
-            tempDiv.appendChild(scoreCanvas.cloneNode(true));
-            tempDiv.appendChild(speedCanvas.cloneNode(true));
-            
-            document.body.appendChild(tempDiv);
-            
-            html2canvas(tempDiv, { scale: 2 }).then(canvas => {
-                document.body.removeChild(tempDiv);
-                const imgData = canvas.toDataURL('image/png');
-                const a = document.createElement('a');
-                a.href = imgData;
-                a.download = `${exam.name}_分析图.png`;
-                a.click();
-            });
+
+            // 克隆并重新绘制成绩图表
+            const scoreCanvas = document.createElement('canvas');
+            scoreCanvas.width = 800;
+            scoreCanvas.height = 400;
+            tempDiv.appendChild(scoreCanvas);
+            const scoreCtx = scoreCanvas.getContext('2d');
+            new Chart(scoreCtx, chartInstances.score.config);
+
+            // 克隆并重新绘制增速图表
+            const speedCanvas = document.createElement('canvas');
+            speedCanvas.width = 800;
+            speedCanvas.height = 400;
+            tempDiv.appendChild(speedCanvas);
+            const speedCtx = speedCanvas.getContext('2d');
+            new Chart(speedCtx, chartInstances.speed.config);
+
+            // 等待图表渲染完成后生成图片
+            setTimeout(() => {
+                html2canvas(tempDiv, { 
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                }).then(canvas => {
+                    document.body.removeChild(tempDiv);
+                    const imgData = canvas.toDataURL('image/png');
+                    const a = document.createElement('a');
+                    a.href = imgData;
+                    a.download = `${exam.name}_分析图.png`;
+                    a.click();
+                });
+            }, 500);
         });
 
         // 导出综合图片
         synthesizeExportImageBtn.addEventListener('click', () => {
             const item = synthesizeExams.find(e => e.id === currentSynthesizeId);
-            if (!item) return;
+            if (!item || Object.keys(chartInstances).length === 0) return;
 
+            // 创建临时容器
             const tempDiv = document.createElement('div');
             tempDiv.style.width = '100%';
             tempDiv.style.maxWidth = '1000px';
@@ -833,40 +963,63 @@
             tempDiv.style.padding = '20px';
             tempDiv.style.borderRadius = '12px';
             tempDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-            
+            tempDiv.style.position = 'absolute';
+            tempDiv.style.top = '-9999px';
+            document.body.appendChild(tempDiv);
+
+            // 添加标题
             const title = document.createElement('h2');
             title.textContent = item.name;
             title.style.textAlign = 'center';
             title.style.marginBottom = '20px';
             tempDiv.appendChild(title);
-            
-            const charts = [
-                document.getElementById('accuracy-chart'),
-                document.getElementById('total-score-chart'),
-                document.getElementById('single-speed-bar-chart'),
-                document.getElementById('total-speed-bar-chart'),
-                document.getElementById('total-ratio-bar-chart')
+
+            // 图表列表
+            const chartList = [
+                { id: 'accuracy', title: '正确率复式折线图' },
+                { id: 'totalScore', title: '总分折线图' },
+                { id: 'singleSpeed', title: '单科增速复式条形图' },
+                { id: 'totalSpeed', title: '总分增速条形图' },
+                { id: 'totalRatio', title: '总分同比增长率条形图' }
             ];
-            charts.forEach(canvas => {
-                if (canvas) {
-                    const clone = canvas.cloneNode(true);
-                    clone.style.width = '100%';
-                    clone.style.height = 'auto';
-                    clone.style.marginBottom = '20px';
-                    tempDiv.appendChild(clone);
-                }
+
+            // 克隆并重新绘制所有图表
+            chartList.forEach(chartInfo => {
+                if (!chartInstances[chartInfo.id]) return;
+
+                const chartWrap = document.createElement('div');
+                chartWrap.style.marginBottom = '20px';
+                tempDiv.appendChild(chartWrap);
+
+                const chartTitle = document.createElement('h3');
+                chartTitle.textContent = chartInfo.title;
+                chartTitle.style.marginBottom = '10px';
+                chartWrap.appendChild(chartTitle);
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 900;
+                canvas.height = 400;
+                chartWrap.appendChild(canvas);
+
+                const ctx = canvas.getContext('2d');
+                new Chart(ctx, chartInstances[chartInfo.id].config);
             });
-            
-            document.body.appendChild(tempDiv);
-            
-            html2canvas(tempDiv, { scale: 2 }).then(canvas => {
-                document.body.removeChild(tempDiv);
-                const imgData = canvas.toDataURL('image/png');
-                const a = document.createElement('a');
-                a.href = imgData;
-                a.download = `${item.name}_综合分析图.png`;
-                a.click();
-            });
+
+            // 等待渲染完成
+            setTimeout(() => {
+                html2canvas(tempDiv, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                }).then(canvas => {
+                    document.body.removeChild(tempDiv);
+                    const imgData = canvas.toDataURL('image/png');
+                    const a = document.createElement('a');
+                    a.href = imgData;
+                    a.download = `${item.name}_综合分析图.png`;
+                    a.click();
+                });
+            }, 800);
         });
 
         // 导出全部数据
