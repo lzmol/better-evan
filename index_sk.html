@@ -1,0 +1,2678 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>食刻 - AI 智能营养管家</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+        * { -webkit-tap-highlight-color: transparent; font-family: 'Noto Sans SC', sans-serif; }
+        body { background: #F2F3F5; overscroll-behavior-y: none; }
+        .page { display: none; min-height: 100vh; padding-bottom: 80px; animation: fadeIn 0.3s ease; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); border-top: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: space-around; padding: 8px 0 20px; z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #9CA3AF; font-size: 11px; transition: all 0.2s; }
+        .nav-item.active { color: #10B981; }
+        .nav-item i { font-size: 22px; }
+        .card { background: white; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02); margin: 12px; padding: 16px; }
+        .progress-track { height: 8px; background: #E5E7EB; border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+        .progress-blue { background: linear-gradient(90deg, #3B82F6, #60A5FA); }
+        .progress-green { background: linear-gradient(90deg, #10B981, #34D399); }
+        .progress-orange { background: linear-gradient(90deg, #F59E0B, #FBBF24); }
+        .progress-red { background: linear-gradient(90deg, #EF4444, #F87171); }
+        .progress-purple { background: linear-gradient(90deg, #8B5CF6, #A78BFA); }
+        .btn-primary { background: linear-gradient(135deg, #10B981, #059669); color: white; border-radius: 12px; padding: 14px; font-weight: 600; text-align: center; box-shadow: 0 4px 12px rgba(16,185,129,0.3); transition: transform 0.1s, box-shadow 0.2s; }
+        .btn-primary:active { transform: scale(0.98); box-shadow: 0 2px 8px rgba(16,185,129,0.2); }
+        .btn-secondary { background: white; color: #374151; border: 1px solid #E5E7EB; border-radius: 12px; padding: 14px; font-weight: 500; text-align: center; }
+        .hero-btn { display: flex; align-items: center; gap: 16px; padding: 24px; border-radius: 20px; color: white; position: relative; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; }
+        .hero-btn:active { transform: scale(0.98); }
+        .hero-btn .icon-bg { width: 56px; height: 56px; border-radius: 16px; background: rgba(255,255,255,0.2); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        .toggle { width: 50px; height: 28px; background: #D1D5DB; border-radius: 14px; position: relative; transition: 0.3s; }
+        .toggle::after { content: ''; position: absolute; width: 24px; height: 24px; background: white; border-radius: 50%; top: 2px; left: 2px; transition: 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+        .toggle.on { background: #10B981; }
+        .toggle.on::after { left: 24px; }
+        .input-field { width: 100%; padding: 14px 16px; border: 1.5px solid #E5E7EB; border-radius: 12px; font-size: 15px; transition: border-color 0.2s; background: #FAFAFA; }
+        .input-field:focus { outline: none; border-color: #10B981; background: white; }
+        .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: 13px; background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; }
+        .camera-viewfinder { aspect-ratio: 3/4; background: #111; border-radius: 20px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .food-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .food-item { background: white; border-radius: 16px; padding: 12px 8px; text-align: center; border: 2px solid transparent; transition: all 0.2s; }
+        .food-item.selected { border-color: #10B981; background: #ECFDF5; }
+        .food-item .food-emoji { font-size: 36px; margin-bottom: 6px; }
+        .food-item .food-name { font-size: 13px; color: #374151; font-weight: 500; }
+        .nutrient-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #F3F4F6; }
+        .nutrient-row:last-child { border-bottom: none; }
+        .ring-progress { position: relative; width: 140px; height: 140px; margin: 0 auto; }
+        .ring-progress svg { transform: rotate(-90deg); }
+        .ring-progress .ring-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+        .advice-card { border-left: 4px solid #10B981; background: white; border-radius: 0 16px 16px 0; padding: 16px; margin: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .step-dot { width: 8px; height: 8px; border-radius: 50%; background: #D1D5DB; transition: 0.3s; }
+        .step-dot.active { width: 24px; border-radius: 4px; background: #10B981; }
+        ::-webkit-scrollbar { width: 0; height: 0; }
+        .manual-content h2 { font-size: 20px; font-weight: 700; color: #111827; margin: 24px 0 12px; }
+        .manual-content h3 { font-size: 16px; font-weight: 600; color: #374151; margin: 16px 0 8px; }
+        .manual-content p { font-size: 14px; color: #4B5563; line-height: 1.8; margin-bottom: 8px; }
+        .manual-content ul { list-style: disc; padding-left: 20px; margin-bottom: 12px; }
+        .manual-content li { font-size: 14px; color: #4B5563; line-height: 1.8; }
+        .manual-content .tip-box { background: #ECFDF5; border-left: 4px solid #10B981; padding: 12px 16px; border-radius: 0 12px 12px 0; margin: 12px 0; }
+        .manual-content .warning-box { background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 12px 16px; border-radius: 0 12px 12px 0; margin: 12px 0; }
+        .exercise-item { display: flex; align-items: center; gap: 12px; padding: 14px; background: #F9FAFB; border-radius: 12px; margin-bottom: 8px; border: 2px solid transparent; cursor: pointer; transition: all 0.2s; }
+        .exercise-item.selected { border-color: #10B981; background: #ECFDF5; }
+        .exercise-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; background: white; }
+        .reserve-card { background: linear-gradient(135deg, #1e3a5f, #2d5a87); color: white; border-radius: 16px; padding: 20px; margin: 12px; }
+        .reserve-bar { height: 10px; background: rgba(255,255,255,0.15); border-radius: 5px; overflow: hidden; margin-top: 6px; }
+        .reserve-fill { height: 100%; border-radius: 5px; transition: width 0.8s ease; }
+        .chart-container { position: relative; height: 280px; margin: 12px; }
+        /* 缺乏症选择网格 */
+        .deficiency-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .def-chip { padding: 10px 12px; border-radius: 12px; border: 1.5px solid #E5E7EB; background: #FAFAFA; font-size: 13px; color: #4B5563; cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 6px; }
+        .def-chip.selected { border-color: #10B981; background: #ECFDF5; color: #047857; font-weight: 600; }
+        .def-chip i { font-size: 10px; }
+        .collapse-btn { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #F9FAFB; border-radius: 12px; border: 1px solid #E5E7EB; color: #374151; font-weight: 500; }
+        /* 体检报告 */
+        .report-section { background: white; border-radius: 12px; margin: 12px; padding: 16px; border-left: 4px solid #10B981; }
+        .report-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed #F3F4F6; font-size: 14px; }
+        .report-row:last-child { border-bottom: none; }
+        .report-value { font-weight: 600; }
+        .badge { padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 600; }
+        .badge-normal { background: #D1FAE5; color: #047857; }
+        .badge-warn { background: #FEF3C7; color: #B45309; }
+        .badge-danger { background: #FEE2E2; color: #B91C1C; }
+        .badge-info { background: #DBEAFE; color: #1D4ED8; }
+        /* 健康打分环 */
+        .score-ring { position: relative; width: 90px; height: 90px; }
+        .score-ring svg { transform: rotate(-90deg); }
+        .score-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+        /* 文献条目 */
+        .ref-item { background: white; border-radius: 12px; padding: 14px; margin-bottom: 10px; border: 1px solid #E5E7EB; }
+        .ref-item h4 { font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 4px; }
+        .ref-item p { font-size: 12px; color: #6B7280; line-height: 1.6; }
+        .ref-item .ref-source { font-size: 11px; color: #2563EB; margin-top: 6px; word-break: break-all; }
+        .ref-tag { display: inline-block; background: #EFF6FF; color: #1D4ED8; font-size: 11px; padding: 2px 8px; border-radius: 6px; margin-right: 4px; margin-top: 4px; }
+        /* 缺乏症条形概率 */
+        .risk-row { display: grid; grid-template-columns: 90px 1fr 50px; align-items: center; gap: 8px; padding: 8px 0; font-size: 13px; }
+        .risk-bar-track { height: 10px; background: #F3F4F6; border-radius: 5px; overflow: hidden; }
+        .risk-bar-fill { height: 100%; border-radius: 5px; transition: width .6s ease; }
+        .risk-low { background: linear-gradient(90deg,#10B981,#34D399); }
+        .risk-mid { background: linear-gradient(90deg,#F59E0B,#FBBF24); }
+        .risk-high { background: linear-gradient(90deg,#EF4444,#F87171); }
+        /* 搜索输入 */
+        .search-box { position: relative; }
+        .search-box i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9CA3AF; }
+        .search-box input { padding-left: 36px; }
+        /* 扫描动画（OCR/AI 处理中遮罩） */
+        .scan-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(2px); display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; border-radius: 20px; z-index: 5; }
+        .scan-line { position: absolute; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, transparent, #10B981, transparent); box-shadow: 0 0 12px #10B981; animation: scan 1.6s ease-in-out infinite; }
+        @keyframes scan { 0% { top: 12%; } 50% { top: 88%; } 100% { top: 12%; } }
+        .scan-grid { position: absolute; inset: 12% 8% 12% 8%; border: 2px solid rgba(16,185,129,0.6); border-radius: 12px; pointer-events: none; }
+        .corner { position: absolute; width: 18px; height: 18px; border: 3px solid #10B981; }
+        .corner.tl { top: -3px; left: -3px; border-right: none; border-bottom: none; border-top-left-radius: 8px; }
+        .corner.tr { top: -3px; right: -3px; border-left: none; border-bottom: none; border-top-right-radius: 8px; }
+        .corner.bl { bottom: -3px; left: -3px; border-right: none; border-top: none; border-bottom-left-radius: 8px; }
+        .corner.br { bottom: -3px; right: -3px; border-left: none; border-top: none; border-bottom-right-radius: 8px; }
+        /* OCR / AI 结果字段卡片 */
+        .field-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #F3F4F6; }
+        .field-row:last-child { border-bottom: none; }
+        .field-label { width: 90px; font-size: 13px; color: #4B5563; }
+        .field-input { flex: 1; padding: 8px 10px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; background: #FAFAFA; }
+        .field-input:focus { outline: none; border-color: #10B981; background: white; }
+        .field-unit { width: 38px; font-size: 12px; color: #9CA3AF; }
+        .conf-pill { padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 600; }
+        .conf-high { background: #D1FAE5; color: #047857; }
+        .conf-mid { background: #FEF3C7; color: #B45309; }
+        .conf-low { background: #FEE2E2; color: #B91C1C; }
+        /* AI 候选 chip */
+        .cand-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 10px; border: 1.5px solid #E5E7EB; background: #FAFAFA; font-size: 13px; cursor: pointer; transition: all .15s; }
+        .cand-chip.selected { border-color: #10B981; background: #ECFDF5; color: #047857; font-weight: 600; }
+        .cand-chip.selected .cand-conf { background: #10B981; color: white; }
+        .cand-conf { font-size: 10px; padding: 1px 6px; border-radius: 6px; background: #E5E7EB; color: #4B5563; }
+    </style>
+</head>
+<body>
+
+<!-- ============ 欢迎页 ============ -->
+<div id="page-welcome" class="page active" style="background: linear-gradient(135deg, #065F46 0%, #10B981 50%, #34D399 100%); padding-bottom: 0;">
+    <div class="flex flex-col items-center justify-center min-h-screen px-8 text-white">
+        <div class="w-24 h-24 bg-white/20 backdrop-blur rounded-3xl flex items-center justify-center mb-8 shadow-2xl">
+            <i class="fas fa-leaf text-5xl"></i>
+        </div>
+        <h1 class="text-4xl font-bold mb-3">食刻</h1>
+        <p class="text-white/80 text-lg mb-2">AI 智能营养管家</p>
+        <p class="text-white/60 text-sm text-center mb-12">摄入 · 储备 · 消耗<br>三维一体，科学管理</p>
+        <button onclick="app.goTo('setup')" class="w-full bg-white text-emerald-600 font-bold py-4 rounded-2xl shadow-lg text-lg mb-4">开始使用</button>
+        <button onclick="app.goTo('manual')" class="text-white/70 text-sm underline">先查看使用说明书</button>
+    </div>
+</div>
+
+<!-- ============ 健康档案设置 ============ -->
+<div id="page-setup" class="page">
+    <div class="bg-white px-5 pt-12 pb-4 sticky top-0 z-10">
+        <div class="flex items-center gap-3 mb-2">
+            <div class="flex gap-1">
+                <div class="step-dot active" id="step1"></div>
+                <div class="step-dot" id="step2"></div>
+                <div class="step-dot" id="step3"></div>
+            </div>
+        </div>
+        <h2 class="text-2xl font-bold text-gray-900" id="setup-title">基本信息</h2>
+        <p class="text-gray-500 text-sm mt-1" id="setup-subtitle">告诉我们你的基本情况</p>
+    </div>
+    <div id="setup-step1" class="px-5 pb-8">
+        <div class="space-y-4">
+            <div><label class="block text-sm font-medium text-gray-700 mb-2">昵称</label><input type="text" id="input-name" class="input-field" placeholder="怎么称呼你？"></div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">性别</label>
+                <div class="flex gap-3">
+                    <button onclick="app.selectGender('male')" id="gender-male" class="flex-1 py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-medium"><i class="fas fa-mars mr-2"></i>男</button>
+                    <button onclick="app.selectGender('female')" id="gender-female" class="flex-1 py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-medium"><i class="fas fa-venus mr-2"></i>女</button>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="block text-sm font-medium text-gray-700 mb-2">年龄（岁）</label><input type="number" id="input-age" class="input-field" placeholder="25"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-2">身高（cm）</label><input type="number" id="input-height" class="input-field" placeholder="170"></div>
+            </div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-2">体重（kg）</label><input type="number" id="input-weight" class="input-field" placeholder="65"></div>
+        </div>
+        <button onclick="app.nextSetup(2)" class="btn-primary w-full mt-8">下一步</button>
+    </div>
+    <div id="setup-step2" class="px-5 pb-8 hidden">
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">疾病史（多选）</label>
+                <div class="flex flex-wrap gap-2" id="disease-tags">
+                    <span class="chip cursor-pointer" onclick="app.toggleDisease(this, '无')">无特殊疾病</span>
+                    <span class="chip cursor-pointer" onclick="app.toggleDisease(this, '糖尿病')">糖尿病</span>
+                    <span class="chip cursor-pointer" onclick="app.toggleDisease(this, '高血压')">高血压</span>
+                    <span class="chip cursor-pointer" onclick="app.toggleDisease(this, '高血脂')">高血脂</span>
+                    <span class="chip cursor-pointer" onclick="app.toggleDisease(this, '肾病')">肾病</span>
+                    <span class="chip cursor-pointer" onclick="app.toggleDisease(this, '胃病')">胃病</span>
+                    <span class="chip cursor-pointer" onclick="app.toggleDisease(this, '痛风')">痛风</span>
+                    <span class="chip cursor-pointer" onclick="app.toggleDisease(this, '贫血')">贫血</span>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">已确诊缺乏症（可选，可搜索）</label>
+                <button type="button" class="collapse-btn" onclick="app.toggleDefPanel()">
+                    <span><i class="fas fa-pills text-emerald-500 mr-2"></i><span id="def-summary">尚未选择 · 点击展开</span></span>
+                    <i class="fas fa-chevron-down" id="def-chevron"></i>
+                </button>
+                <div id="def-panel" class="hidden mt-2 p-3 bg-white border border-gray-200 rounded-xl">
+                    <div class="search-box mb-3">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="def-search" class="input-field" placeholder="搜索缺乏症，如：维生素C、铁..." oninput="app.filterDeficiencies(this.value)">
+                    </div>
+                    <div class="deficiency-grid" id="deficiency-grid"></div>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">特殊生理时期（可多选）</label>
+                <div class="flex flex-wrap gap-2" id="phase-tags">
+                    <span class="chip cursor-pointer" onclick="app.togglePhase(this, '无')">无</span>
+                    <span class="chip cursor-pointer" onclick="app.togglePhase(this, '孕早期')">孕早期</span>
+                    <span class="chip cursor-pointer" onclick="app.togglePhase(this, '孕中期')">孕中期</span>
+                    <span class="chip cursor-pointer" onclick="app.togglePhase(this, '孕晚期')">孕晚期</span>
+                    <span class="chip cursor-pointer" onclick="app.togglePhase(this, '哺乳期')">哺乳期</span>
+                    <span class="chip cursor-pointer" onclick="app.togglePhase(this, '经期')">经期</span>
+                    <span class="chip cursor-pointer" onclick="app.togglePhase(this, '青春期生长')">青春期</span>
+                    <span class="chip cursor-pointer" onclick="app.togglePhase(this, '术后恢复')">术后恢复</span>
+                    <span class="chip cursor-pointer" onclick="app.togglePhase(this, '老年期')">老年期</span>
+                    <span class="chip cursor-pointer" onclick="app.togglePhase(this, '减脂期')">减脂期</span>
+                    <span class="chip cursor-pointer" onclick="app.togglePhase(this, '增肌期')">增肌期</span>
+                </div>
+                <p class="text-xs text-gray-400 mt-2"><i class="fas fa-info-circle mr-1"></i>不同时期会自动调整营养目标（如孕期+叶酸、哺乳期+钙、经期+铁）</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div><label class="block text-sm font-medium text-gray-700 mb-2">收缩压（mmHg）</label><input type="number" id="input-bp-high" class="input-field" placeholder="120"></div>
+                <div><label class="block text-sm font-medium text-gray-700 mb-2">舒张压（mmHg）</label><input type="number" id="input-bp-low" class="input-field" placeholder="80"></div>
+            </div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-2">空腹血糖（mmol/L）</label><input type="number" step="0.1" id="input-blood-sugar" class="input-field" placeholder="5.0"></div>
+        </div>
+        <div class="flex gap-3 mt-8">
+            <button onclick="app.nextSetup(1)" class="btn-secondary flex-1">上一步</button>
+            <button onclick="app.nextSetup(3)" class="btn-primary flex-1">下一步</button>
+        </div>
+    </div>
+    <div id="setup-step3" class="px-5 pb-8 hidden">
+        <div class="space-y-4">
+            <div><label class="block text-sm font-medium text-gray-700 mb-2">视力状况</label><input type="text" id="input-vision" class="input-field" placeholder="如：左眼5.0 右眼4.8"></div>
+            <div><label class="block text-sm font-medium text-gray-700 mb-2">牙齿状况</label><input type="text" id="input-teeth" class="input-field" placeholder="如：良好，有智齿"></div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">每周运动频率</label>
+                <div class="flex gap-2">
+                    <button onclick="app.selectExercise(0)" id="ex-0" class="flex-1 py-2 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-700 text-sm font-medium">不运动</button>
+                    <button onclick="app.selectExercise(1)" id="ex-1" class="flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium">1-2次</button>
+                    <button onclick="app.selectExercise(3)" id="ex-3" class="flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium">3-5次</button>
+                    <button onclick="app.selectExercise(6)" id="ex-6" class="flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium">每天</button>
+                </div>
+            </div>
+        </div>
+        <div class="flex gap-3 mt-8">
+            <button onclick="app.nextSetup(2)" class="btn-secondary flex-1">上一步</button>
+            <button onclick="app.completeSetup()" class="btn-primary flex-1">生成营养方案</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============ 首页 ============ -->
+<div id="page-home" class="page">
+    <div class="px-5 pt-12 pb-4">
+        <div class="flex items-center justify-between mb-1">
+            <div>
+                <p class="text-gray-500 text-sm" id="home-date">2026年5月9日</p>
+                <h2 class="text-2xl font-bold text-gray-900">你好，<span id="home-name">用户</span> 👋</h2>
+            </div>
+            <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600"><i class="fas fa-user"></i></div>
+        </div>
+        <p class="text-gray-500 text-sm">摄入 · 储备 · 消耗，三维动态平衡</p>
+    </div>
+
+    <!-- 体重 + 健康打分 + 体检入口 -->
+    <div class="card mx-5 mt-2" style="background: linear-gradient(135deg,#ECFDF5,#F0FDF4);">
+        <div class="flex items-center gap-4">
+            <div class="score-ring">
+                <svg width="90" height="90" viewBox="0 0 90 90">
+                    <circle cx="45" cy="45" r="38" fill="none" stroke="#E5E7EB" stroke-width="7"/>
+                    <circle id="home-score-ring" cx="45" cy="45" r="38" fill="none" stroke="#10B981" stroke-width="7" stroke-dasharray="238.76" stroke-dashoffset="238.76" stroke-linecap="round"/>
+                </svg>
+                <div class="score-text">
+                    <div class="text-2xl font-bold text-emerald-700" id="home-score">--</div>
+                    <div class="text-[10px] text-gray-500">健康分</div>
+                </div>
+            </div>
+            <div class="flex-1">
+                <div class="flex items-baseline gap-2">
+                    <span class="text-3xl font-bold text-gray-900" id="home-weight">--</span>
+                    <span class="text-sm text-gray-500">kg</span>
+                </div>
+                <div class="text-xs text-gray-600 mt-1">BMI <span id="home-bmi" class="font-medium">--</span> · <span id="home-bmi-tag">--</span></div>
+                <div class="text-xs text-gray-500 mt-1" id="home-score-tip">完成档案即可获得健康评分</div>
+            </div>
+            <button onclick="app.goTo('report')" class="px-3 py-2 bg-emerald-500 text-white rounded-xl text-xs font-medium shadow"><i class="fas fa-file-medical mr-1"></i>体检报告</button>
+        </div>
+    </div>
+    
+    <!-- 六大入口按钮 -->
+    <div class="px-5 space-y-3">
+        <div class="grid grid-cols-2 gap-3">
+            <div onclick="app.goTo('goals')" class="hero-btn bg-gradient-to-br from-blue-500 to-blue-600 cursor-pointer" style="padding: 18px;">
+                <div class="icon-bg" style="width:44px;height:44px;font-size:20px;"><i class="fas fa-bullseye"></i></div>
+                <div><h3 class="text-lg font-bold">营养目标</h3><p class="text-white/70 text-xs">每日应摄入</p></div>
+            </div>
+            <div onclick="app.goTo('camera')" class="hero-btn bg-gradient-to-br from-emerald-500 to-emerald-600 cursor-pointer" style="padding: 18px;">
+                <div class="icon-bg" style="width:44px;height:44px;font-size:20px;"><i class="fas fa-camera"></i></div>
+                <div><h3 class="text-lg font-bold">拍一拍</h3><p class="text-white/70 text-xs">记录饮食</p></div>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+            <div onclick="app.goTo('reserve')" class="hero-btn bg-gradient-to-br from-indigo-500 to-indigo-600 cursor-pointer" style="padding: 18px;">
+                <div class="icon-bg" style="width:44px;height:44px;font-size:20px;"><i class="fas fa-warehouse"></i></div>
+                <div><h3 class="text-lg font-bold">身体储备</h3><p class="text-white/70 text-xs">有机物储量</p></div>
+            </div>
+            <div onclick="app.goTo('exercise')" class="hero-btn bg-gradient-to-br from-orange-500 to-orange-600 cursor-pointer" style="padding: 18px;">
+                <div class="icon-bg" style="width:44px;height:44px;font-size:20px;"><i class="fas fa-running"></i></div>
+                <div><h3 class="text-lg font-bold">运动消耗</h3><p class="text-white/70 text-xs">记录运动</p></div>
+            </div>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+            <div onclick="app.goTo('risk')" class="hero-btn bg-gradient-to-br from-rose-500 to-rose-600 cursor-pointer" style="padding: 18px;">
+                <div class="icon-bg" style="width:44px;height:44px;font-size:20px;"><i class="fas fa-virus"></i></div>
+                <div><h3 class="text-lg font-bold">缺乏症风险</h3><p class="text-white/70 text-xs">发病概率推算</p></div>
+            </div>
+            <div onclick="app.goTo('stock-chart')" class="hero-btn bg-gradient-to-br from-purple-500 to-purple-600 cursor-pointer" style="padding: 18px;">
+                <div class="icon-bg" style="width:44px;height:44px;font-size:20px;"><i class="fas fa-chart-column"></i></div>
+                <div><h3 class="text-lg font-bold">储量统计</h3><p class="text-white/70 text-xs">每种物质条形图</p></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 今日概览 -->
+    <div class="card mt-5 mx-5">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="font-bold text-gray-900">今日能量平衡</h3>
+            <span class="text-xs text-gray-400" id="record-count">已记录 0 次</span>
+        </div>
+        <div class="flex items-center justify-around mb-4">
+            <div class="text-center">
+                <div class="text-2xl font-bold text-emerald-600" id="home-intake">0</div>
+                <div class="text-xs text-gray-500">摄入 kcal</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-orange-500" id="home-burn">0</div>
+                <div class="text-xs text-gray-500">消耗 kcal</div>
+            </div>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-blue-600" id="home-net">0</div>
+                <div class="text-xs text-gray-500">净摄入 kcal</div>
+            </div>
+        </div>
+        <div class="ring-progress" style="width:120px;height:120px;">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#E5E7EB" stroke-width="8"/>
+                <circle id="home-ring" cx="60" cy="60" r="50" fill="none" stroke="#10B981" stroke-width="8" stroke-dasharray="314" stroke-dashoffset="314" stroke-linecap="round"/>
+            </svg>
+            <div class="ring-text">
+                <div class="text-xl font-bold text-gray-900" id="home-kcal">0</div>
+                <div class="text-xs text-gray-500">kcal / <span id="home-kcal-goal">2000</span></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 最近记录 -->
+    <div class="card mx-5" id="recent-records">
+        <h3 class="font-bold text-gray-900 mb-3">最近记录</h3>
+        <div class="text-center text-gray-400 py-8" id="no-records">
+            <i class="fas fa-utensils text-3xl mb-2"></i>
+            <p class="text-sm">还没有记录哦，快去拍一拍或记录运动吧</p>
+        </div>
+        <div id="records-list" class="space-y-3 hidden"></div>
+    </div>
+</div>
+
+<!-- ============ 营养目标页 ============ -->
+<div id="page-goals" class="page">
+    <div class="bg-white px-5 pt-12 pb-4 sticky top-0 z-10 flex items-center gap-3">
+        <button onclick="app.goTo('home')" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"><i class="fas fa-arrow-left"></i></button>
+        <h2 class="text-xl font-bold">每日营养目标</h2>
+    </div>
+    <div class="px-5 pb-4"><p class="text-sm text-gray-500">基于你的健康档案计算，定期更新更精准</p></div>
+    <div id="goals-list" class="space-y-3 px-5 pb-8"></div>
+</div>
+
+<!-- ============ 身体储备页 ============ -->
+<div id="page-reserve" class="page">
+    <div class="bg-white px-5 pt-12 pb-4 sticky top-0 z-10 flex items-center gap-3">
+        <button onclick="app.goTo('home')" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"><i class="fas fa-arrow-left"></i></button>
+        <h2 class="text-xl font-bold">身体有机物储备</h2>
+    </div>
+    <div class="px-5 pb-4">
+        <p class="text-sm text-gray-500">摄入增加储备，运动消耗减少储备，按糖原→脂肪→蛋白质顺序消耗</p>
+    </div>
+    
+    <!-- 总储量概览 -->
+    <div class="reserve-card mx-5">
+        <div class="flex items-center justify-between mb-1">
+            <span class="text-white/70 text-sm">体内有机物总储量</span>
+            <span class="text-2xl font-bold" id="reserve-total">0 g</span>
+        </div>
+        <div class="text-white/50 text-xs mb-4">占体重约 <span id="reserve-pct">0</span>%</div>
+        <div class="grid grid-cols-3 gap-4 text-center">
+            <div>
+                <div class="text-lg font-bold" id="reserve-glycogen">0g</div>
+                <div class="text-xs text-white/60">糖原</div>
+            </div>
+            <div>
+                <div class="text-lg font-bold" id="reserve-fat">0g</div>
+                <div class="text-xs text-white/60">脂肪</div>
+            </div>
+            <div>
+                <div class="text-lg font-bold" id="reserve-protein">0g</div>
+                <div class="text-xs text-white/60">蛋白质</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 详细储量 -->
+    <div id="reserve-detail-list" class="space-y-3 px-5 mt-4 pb-8"></div>
+    
+    <!-- 储量变化趋势 -->
+    <div class="card mx-5">
+        <h3 class="font-bold text-gray-900 mb-3">今日储量变化</h3>
+        <div class="flex items-center justify-around text-center">
+            <div>
+                <div class="text-emerald-600 font-bold text-lg">+<span id="reserve-add">0</span>g</div>
+                <div class="text-xs text-gray-500">摄入增加</div>
+            </div>
+            <div>
+                <div class="text-orange-500 font-bold text-lg">-<span id="reserve-minus">0</span>g</div>
+                <div class="text-xs text-gray-500">运动消耗</div>
+            </div>
+            <div>
+                <div class="text-blue-600 font-bold text-lg" id="reserve-net">0g</div>
+                <div class="text-xs text-gray-500">净变化</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============ 运动消耗页 ============ -->
+<div id="page-exercise" class="page">
+    <div class="bg-white px-5 pt-12 pb-4 sticky top-0 z-10 flex items-center gap-3">
+        <button onclick="app.goTo('home')" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"><i class="fas fa-arrow-left"></i></button>
+        <h2 class="text-xl font-bold">记录运动消耗</h2>
+    </div>
+    
+    <div class="px-5 pb-8">
+        <div class="card mb-4">
+            <h3 class="font-bold text-gray-900 mb-1">选择运动类型</h3>
+            <p class="text-xs text-gray-500 mb-4">系统将自动计算消耗的能量及有机物分解量</p>
+            <div id="exercise-types">
+                <div class="exercise-item" onclick="app.selectExerciseType('walk')" data-type="walk">
+                    <div class="exercise-icon">🚶</div>
+                    <div class="flex-1"><div class="font-medium text-gray-900">慢走</div><div class="text-xs text-gray-500">约 3.5 kcal/分钟</div></div>
+                </div>
+                <div class="exercise-item" onclick="app.selectExerciseType('jog')" data-type="jog">
+                    <div class="exercise-icon">🏃</div>
+                    <div class="flex-1"><div class="font-medium text-gray-900">慢跑</div><div class="text-xs text-gray-500">约 8 kcal/分钟</div></div>
+                </div>
+                <div class="exercise-item" onclick="app.selectExerciseType('run')" data-type="run">
+                    <div class="exercise-icon">⚡</div>
+                    <div class="flex-1"><div class="font-medium text-gray-900">快跑</div><div class="text-xs text-gray-500">约 12 kcal/分钟</div></div>
+                </div>
+                <div class="exercise-item" onclick="app.selectExerciseType('cycle')" data-type="cycle">
+                    <div class="exercise-icon">🚴</div>
+                    <div class="flex-1"><div class="font-medium text-gray-900">骑行</div><div class="text-xs text-gray-500">约 7 kcal/分钟</div></div>
+                </div>
+                <div class="exercise-item" onclick="app.selectExerciseType('swim')" data-type="swim">
+                    <div class="exercise-icon">🏊</div>
+                    <div class="flex-1"><div class="font-medium text-gray-900">游泳</div><div class="text-xs text-gray-500">约 10 kcal/分钟</div></div>
+                </div>
+                <div class="exercise-item" onclick="app.selectExerciseType('yoga')" data-type="yoga">
+                    <div class="exercise-icon">🧘</div>
+                    <div class="flex-1"><div class="font-medium text-gray-900">瑜伽</div><div class="text-xs text-gray-500">约 3 kcal/分钟</div></div>
+                </div>
+                <div class="exercise-item" onclick="app.selectExerciseType('hiit')" data-type="hiit">
+                    <div class="exercise-icon">🔥</div>
+                    <div class="flex-1"><div class="font-medium text-gray-900">HIIT</div><div class="text-xs text-gray-500">约 15 kcal/分钟</div></div>
+                </div>
+                <div class="exercise-item" onclick="app.selectExerciseType('weights')" data-type="weights">
+                    <div class="exercise-icon">🏋️</div>
+                    <div class="flex-1"><div class="font-medium text-gray-900">力量训练</div><div class="text-xs text-gray-500">约 6 kcal/分钟</div></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h3 class="font-bold text-gray-900 mb-4">运动时长（分钟）</h3>
+            <input type="number" id="input-duration" class="input-field mb-4" placeholder="输入运动时长，如 30">
+            <div class="flex gap-2 mb-4">
+                <button onclick="app.setDuration(15)" class="flex-1 py-2 rounded-lg border border-gray-200 text-sm text-gray-600">15分</button>
+                <button onclick="app.setDuration(30)" class="flex-1 py-2 rounded-lg border border-gray-200 text-sm text-gray-600">30分</button>
+                <button onclick="app.setDuration(45)" class="flex-1 py-2 rounded-lg border border-gray-200 text-sm text-gray-600">45分</button>
+                <button onclick="app.setDuration(60)" class="flex-1 py-2 rounded-lg border border-gray-200 text-sm text-gray-600">60分</button>
+            </div>
+            <button onclick="app.saveExercise()" id="btn-save-exercise" class="btn-primary w-full opacity-50" disabled>确认记录</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============ 消耗柱状图页 ============ -->
+<div id="page-burn-chart" class="page">
+    <div class="bg-white px-5 pt-12 pb-4 sticky top-0 z-10 flex items-center gap-3">
+        <button onclick="app.goTo('home')" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"><i class="fas fa-arrow-left"></i></button>
+        <h2 class="text-xl font-bold">消耗分析柱状图</h2>
+    </div>
+    <div class="px-5 pb-4">
+        <p class="text-sm text-gray-500">今日各项运动消耗的能量（kJ）及分解的有机物</p>
+    </div>
+    
+    <div class="card mx-5">
+        <h3 class="font-bold text-gray-900 mb-2">能量消耗分布（kJ）</h3>
+        <div class="chart-container" style="height:220px;">
+            <canvas id="chart-kj"></canvas>
+        </div>
+    </div>
+    
+    <div class="card mx-5 mt-3">
+        <h3 class="font-bold text-gray-900 mb-2">有机物分解量（g）</h3>
+        <div class="chart-container" style="height:220px;">
+            <canvas id="chart-organic"></canvas>
+        </div>
+    </div>
+    
+    <div class="card mx-5 mt-3">
+        <h3 class="font-bold text-gray-900 mb-3">消耗来源优先级</h3>
+        <div class="space-y-3">
+            <div>
+                <div class="flex justify-between text-sm mb-1"><span class="text-gray-700">糖原（优先）</span><span class="font-bold text-blue-600" id="burn-glycogen">0 g</span></div>
+                <div class="progress-track"><div class="progress-fill progress-blue" id="bar-glycogen" style="width:0%"></div></div>
+            </div>
+            <div>
+                <div class="flex justify-between text-sm mb-1"><span class="text-gray-700">脂肪（次优先）</span><span class="font-bold text-orange-500" id="burn-fat">0 g</span></div>
+                <div class="progress-track"><div class="progress-fill progress-orange" id="bar-fat" style="width:0%"></div></div>
+            </div>
+            <div>
+                <div class="flex justify-between text-sm mb-1"><span class="text-gray-700">蛋白质（最后）</span><span class="font-bold text-red-500" id="burn-protein">0 g</span></div>
+                <div class="progress-track"><div class="progress-fill progress-red" id="bar-protein" style="width:0%"></div></div>
+            </div>
+        </div>
+        <div class="mt-4 p-3 bg-blue-50 rounded-xl text-xs text-blue-800 leading-relaxed">
+            <strong>消耗顺序说明：</strong><br>
+            ① 0-30分钟：主要消耗糖原（肌糖原+肝糖原）<br>
+            ② 30-60分钟：糖原+脂肪混合供能<br>
+            ③ 60分钟以上：脂肪为主，少量蛋白质<br>
+            高强度运动优先消耗糖原，低强度长时间运动更多消耗脂肪。
+        </div>
+    </div>
+</div>
+
+<!-- ============ 拍一拍 ============ -->
+<div id="page-camera" class="page" style="background: #111;">
+    <div class="relative h-screen flex flex-col">
+        <div class="flex items-center justify-between p-5 text-white z-10">
+            <button onclick="app.goTo('home')" class="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur"><i class="fas fa-times"></i></button>
+            <div class="flex bg-white/20 backdrop-blur rounded-full p-1">
+                <button onclick="app.setCameraMode('package')" id="cam-mode-package" class="px-4 py-1.5 rounded-full text-sm font-medium bg-white text-black">拍包装</button>
+                <button onclick="app.setCameraMode('food')" id="cam-mode-food" class="px-4 py-1.5 rounded-full text-sm font-medium text-white">拍实物</button>
+            </div>
+            <div class="w-10"></div>
+        </div>
+        <div class="flex-1 flex items-center justify-center px-8">
+            <div class="w-full">
+                <div class="camera-viewfinder mb-6">
+                    <div class="text-center text-white/80" id="camera-placeholder">
+                        <i class="fas fa-camera text-5xl mb-4 opacity-50"></i>
+                        <p class="text-lg font-medium">选择下方食物进行模拟拍摄</p>
+                        <p class="text-sm text-white/50 mt-2"><span id="cam-tip-mode">拍包装</span>模式 · 将调用 <span id="cam-tip-api">OCR 文字识别</span></p>
+                    </div>
+                    <div id="camera-selected-preview" class="hidden absolute inset-0 flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="text-8xl mb-4" id="preview-emoji">🍎</div>
+                            <div class="bg-black/60 backdrop-blur rounded-xl px-6 py-3 text-white">
+                                <div class="font-bold text-lg" id="preview-name">苹果</div>
+                                <div class="text-sm text-white/70" id="preview-type">有包装食品</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 扫描中遮罩 -->
+                    <div id="scan-overlay" class="scan-overlay hidden">
+                        <div class="scan-grid">
+                            <span class="corner tl"></span><span class="corner tr"></span>
+                            <span class="corner bl"></span><span class="corner br"></span>
+                        </div>
+                        <div class="scan-line"></div>
+                        <i class="fas fa-magnifying-glass text-4xl mb-3" style="animation: pulse 1.2s infinite;"></i>
+                        <p class="font-medium" id="scan-title">正在识别...</p>
+                        <p class="text-xs text-white/70 mt-1" id="scan-sub">调用 AI 引擎</p>
+                    </div>
+                </div>
+                <div class="bg-white/10 backdrop-blur rounded-2xl p-4">
+                    <p class="text-white/60 text-xs mb-3 text-center">点击选择模拟拍摄对象</p>
+                    <div class="food-grid" id="camera-food-grid"></div>
+                </div>
+            </div>
+        </div>
+        <div class="p-6">
+            <button onclick="app.confirmCapture()" id="btn-capture" class="w-full bg-white text-black font-bold py-4 rounded-2xl text-lg opacity-50" disabled>
+                <i class="fas fa-camera mr-2"></i>确认拍摄
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ============ OCR 校对页（拍包装） ============ -->
+<div id="page-ocr-review" class="page">
+    <div class="bg-white px-5 pt-12 pb-4 sticky top-0 z-10 flex items-center gap-3">
+        <button onclick="app.goTo('camera')" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"><i class="fas fa-arrow-left"></i></button>
+        <div class="flex-1">
+            <h2 class="text-xl font-bold">校对识别结果</h2>
+            <p class="text-xs text-gray-500" id="ocr-meta">OCR 识别完成 · 请核对营养成分表</p>
+        </div>
+        <span class="conf-pill" id="ocr-overall-conf">--</span>
+    </div>
+    <div class="px-5 pb-8 space-y-3">
+        <div class="card">
+            <h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2"><i class="fas fa-box text-emerald-500"></i>产品基本信息</h3>
+            <div class="field-row">
+                <span class="field-label">产品名称</span>
+                <input id="ocr-name" type="text" class="field-input" placeholder="例如 伊利纯牛奶">
+            </div>
+            <div class="field-row">
+                <span class="field-label">净含量</span>
+                <input id="ocr-netweight" type="number" class="field-input" placeholder="250">
+                <span class="field-unit">g/ml</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 class="font-bold text-gray-900 mb-1 flex items-center gap-2"><i class="fas fa-table text-emerald-500"></i>营养成分表（每100g）</h3>
+            <p class="text-xs text-gray-400 mb-2">置信度图例：<span class="conf-pill conf-high">高</span> <span class="conf-pill conf-mid">中</span> <span class="conf-pill conf-low">低</span> 低置信项建议手动复核</p>
+            <div id="ocr-nutrients-list"></div>
+        </div>
+
+        <div class="card">
+            <button onclick="app.ocrConfirmGoConfirm()" class="btn-primary w-full"><i class="fas fa-check mr-2"></i>校对完成，下一步</button>
+            <button onclick="app.ocrManualFallback()" class="btn-secondary w-full mt-2"><i class="fas fa-search mr-2"></i>识别有误，改为手动从数据库选择</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============ AI 视觉识别校对页（拍实物） ============ -->
+<div id="page-ai-review" class="page">
+    <div class="bg-white px-5 pt-12 pb-4 sticky top-0 z-10 flex items-center gap-3">
+        <button onclick="app.goTo('camera')" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"><i class="fas fa-arrow-left"></i></button>
+        <div class="flex-1">
+            <h2 class="text-xl font-bold">AI 识别结果</h2>
+            <p class="text-xs text-gray-500" id="ai-meta">基于个人档案微调营养估算</p>
+        </div>
+        <span class="conf-pill" id="ai-overall-conf">--</span>
+    </div>
+    <div class="px-5 pb-8 space-y-3">
+        <div class="card">
+            <div class="flex items-center gap-4">
+                <div class="text-6xl" id="ai-emoji">🍽️</div>
+                <div class="flex-1">
+                    <div class="text-lg font-bold text-gray-900" id="ai-name">--</div>
+                    <div class="text-xs text-gray-500 mt-1" id="ai-desc">AI 估算结果</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="ai-candidates-card">
+            <h3 class="font-bold text-gray-900 mb-2 flex items-center gap-2"><i class="fas fa-list-check text-emerald-500"></i>AI 给出的候选食物</h3>
+            <p class="text-xs text-gray-400 mb-3">点击切换为更准确的候选</p>
+            <div id="ai-candidates" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <div class="card">
+            <h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2"><i class="fas fa-weight text-emerald-500"></i>预估重量（可调整）</h3>
+            <div class="flex items-center gap-2 mb-3">
+                <input id="ai-weight" type="number" class="field-input flex-1" placeholder="200">
+                <span class="text-sm text-gray-500">g</span>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="app.aiAdjustWeight(0.5)" class="flex-1 py-2 rounded-lg border border-gray-200 text-sm">×0.5</button>
+                <button onclick="app.aiAdjustWeight(0.8)" class="flex-1 py-2 rounded-lg border border-gray-200 text-sm">×0.8</button>
+                <button onclick="app.aiAdjustWeight(1)" class="flex-1 py-2 rounded-lg border border-emerald-500 bg-emerald-50 text-emerald-700 text-sm">原值</button>
+                <button onclick="app.aiAdjustWeight(1.2)" class="flex-1 py-2 rounded-lg border border-gray-200 text-sm">×1.2</button>
+                <button onclick="app.aiAdjustWeight(1.5)" class="flex-1 py-2 rounded-lg border border-gray-200 text-sm">×1.5</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 class="font-bold text-gray-900 mb-2 flex items-center gap-2"><i class="fas fa-flask text-emerald-500"></i>预估营养成分（每100g）</h3>
+            <div id="ai-nutrients-list" class="text-sm"></div>
+        </div>
+
+        <div class="card">
+            <button onclick="app.aiConfirmGoConfirm()" class="btn-primary w-full"><i class="fas fa-check mr-2"></i>识别正确，下一步</button>
+            <button onclick="app.ocrManualFallback()" class="btn-secondary w-full mt-2"><i class="fas fa-search mr-2"></i>都不对？从数据库手动选择</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============ 手动搜索回退页 ============ -->
+<div id="page-manual-pick" class="page">
+    <div class="bg-white px-5 pt-12 pb-4 sticky top-0 z-10 flex items-center gap-3">
+        <button onclick="app.goTo('camera')" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"><i class="fas fa-arrow-left"></i></button>
+        <h2 class="text-xl font-bold">从数据库选择食物</h2>
+    </div>
+    <div class="px-5 pb-8">
+        <div class="search-box mb-3">
+            <i class="fas fa-search"></i>
+            <input type="text" id="manual-search" class="input-field" placeholder="搜索食物名称，如：苹果、牛奶..." oninput="app.renderManualPick(this.value)">
+        </div>
+        <div id="manual-pick-list" class="grid grid-cols-2 gap-3"></div>
+    </div>
+</div>
+
+<!-- ============ 摄入确认页 ============ -->
+<div id="page-confirm" class="page">
+    <div class="bg-white px-5 pt-12 pb-4 sticky top-0 z-10 flex items-center gap-3">
+        <button onclick="app.goTo('camera')" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"><i class="fas fa-arrow-left"></i></button>
+        <h2 class="text-xl font-bold">确认摄入</h2>
+    </div>
+    <div class="px-5 pb-8">
+        <div class="card text-center">
+            <div class="text-6xl mb-3" id="confirm-emoji">🍎</div>
+            <h3 class="text-xl font-bold text-gray-900" id="confirm-name">苹果</h3>
+            <p class="text-gray-500 text-sm mt-1" id="confirm-net">每100g营养成分</p>
+        </div>
+        <div class="card">
+            <h3 class="font-bold text-gray-900 mb-4">营养成分（每100g）</h3>
+            <div id="confirm-nutrients" class="space-y-2"></div>
+        </div>
+        <div class="card">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h3 class="font-bold text-gray-900">本次食用量</h3>
+                    <p class="text-sm text-gray-500" id="confirm-total-weight">净含量：250g</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-600">分批</span>
+                    <div class="toggle" id="toggle-batch" onclick="app.toggleBatch()"></div>
+                </div>
+            </div>
+            <div id="batch-options" class="hidden space-y-3">
+                <div class="flex gap-2">
+                    <button onclick="app.setBatchRatio(1)" class="batch-btn flex-1 py-2 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-700 text-sm font-medium" data-ratio="1">全部</button>
+                    <button onclick="app.setBatchRatio(0.5)" class="batch-btn flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium" data-ratio="0.5">1/2</button>
+                    <button onclick="app.setBatchRatio(0.33)" class="batch-btn flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium" data-ratio="0.33">1/3</button>
+                    <button onclick="app.setBatchRatio(0.25)" class="batch-btn flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium" data-ratio="0.25">1/4</button>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">或自定义克数</label>
+                    <input type="number" id="input-custom-grams" class="input-field" placeholder="输入克数" oninput="app.setCustomGrams(this.value)">
+                </div>
+            </div>
+            <div class="mt-4 pt-4 border-t border-gray-100">
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">本次将计入</span>
+                    <span class="font-bold text-emerald-600" id="confirm-final-grams">250g</span>
+                </div>
+            </div>
+        </div>
+        <button onclick="app.saveRecord()" class="btn-primary w-full mt-4"><i class="fas fa-check mr-2"></i>确认记录</button>
+    </div>
+</div>
+
+<!-- ============ 摄入详情 ============ -->
+<div id="page-detail" class="page">
+    <div class="px-5 pt-12 pb-4">
+        <h2 class="text-2xl font-bold text-gray-900">摄入详情</h2>
+        <p class="text-gray-500 text-sm mt-1">今日营养摄入进度</p>
+    </div>
+    <div class="card mx-5">
+        <div class="ring-progress" style="width:120px;height:120px;">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="#E5E7EB" stroke-width="8"/>
+                <circle id="detail-ring" cx="60" cy="60" r="50" fill="none" stroke="#10B981" stroke-width="8" stroke-dasharray="314" stroke-dashoffset="314" stroke-linecap="round"/>
+            </svg>
+            <div class="ring-text">
+                <div class="text-xl font-bold text-gray-900" id="detail-kcal">0</div>
+                <div class="text-xs text-gray-500">kcal</div>
+            </div>
+        </div>
+        <div class="text-center mt-2">
+            <span class="text-sm text-gray-500">目标 </span>
+            <span class="font-bold text-gray-900" id="detail-kcal-goal">2000</span>
+            <span class="text-sm text-gray-500"> kcal</span>
+        </div>
+    </div>
+    <div class="px-5 mt-4">
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-gray-900">营养素进度</h3>
+            <div class="flex gap-3 text-xs">
+                <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-blue-500"></div>不足</span>
+                <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-emerald-500"></div>良好</span>
+                <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-orange-500"></div>接近</span>
+                <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-red-500"></div>超标</span>
+            </div>
+        </div>
+    </div>
+    <div id="detail-list" class="space-y-3 px-5 pb-8"></div>
+</div>
+
+<!-- ============ 建议页 ============ -->
+<div id="page-advice" class="page">
+    <div class="px-5 pt-12 pb-4">
+        <h2 class="text-2xl font-bold text-gray-900">营养建议</h2>
+        <p class="text-gray-500 text-sm mt-1">AI 基于你的摄入生成的个性化建议</p>
+    </div>
+    <div id="advice-list" class="pb-8"></div>
+</div>
+
+<!-- ============ 我的 ============ -->
+<div id="page-profile" class="page">
+    <div class="px-5 pt-12 pb-4">
+        <h2 class="text-2xl font-bold text-gray-900">我的</h2>
+    </div>
+    <div class="card mx-5">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 text-2xl"><i class="fas fa-user"></i></div>
+            <div class="flex-1">
+                <h3 class="font-bold text-gray-900 text-lg" id="profile-name">用户</h3>
+                <p class="text-sm text-gray-500" id="profile-info">25岁 · 男 · 65kg</p>
+            </div>
+            <button onclick="app.goTo('setup-edit')" class="text-emerald-600 text-sm font-medium">编辑</button>
+        </div>
+    </div>
+    <div class="card mx-5 mt-4 space-y-1">
+        <div onclick="app.goTo('goals')" class="flex items-center justify-between py-3 cursor-pointer">
+            <div class="flex items-center gap-3"><div class="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600"><i class="fas fa-bullseye"></i></div><span class="text-gray-900 font-medium">营养目标</span></div>
+            <i class="fas fa-chevron-right text-gray-400"></i>
+        </div>
+        <div class="h-px bg-gray-100"></div>
+        <div onclick="app.goTo('detail')" class="flex items-center justify-between py-3 cursor-pointer">
+            <div class="flex items-center gap-3"><div class="w-9 h-9 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600"><i class="fas fa-chart-bar"></i></div><span class="text-gray-900 font-medium">摄入记录</span></div>
+            <i class="fas fa-chevron-right text-gray-400"></i>
+        </div>
+        <div class="h-px bg-gray-100"></div>
+        <div onclick="app.goTo('burn-chart')" class="flex items-center justify-between py-3 cursor-pointer">
+            <div class="flex items-center gap-3"><div class="w-9 h-9 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600"><i class="fas fa-fire"></i></div><span class="text-gray-900 font-medium">消耗柱状图</span></div>
+            <i class="fas fa-chevron-right text-gray-400"></i>
+        </div>
+        <div class="h-px bg-gray-100"></div>
+        <div onclick="app.goTo('reserve')" class="flex items-center justify-between py-3 cursor-pointer">
+            <div class="flex items-center gap-3"><div class="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600"><i class="fas fa-warehouse"></i></div><span class="text-gray-900 font-medium">身体储备</span></div>
+            <i class="fas fa-chevron-right text-gray-400"></i>
+        </div>
+        <div class="h-px bg-gray-100"></div>
+        <div onclick="app.goTo('manual')" class="flex items-center justify-between py-3 cursor-pointer">
+            <div class="flex items-center gap-3"><div class="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600"><i class="fas fa-book"></i></div><span class="text-gray-900 font-medium">使用说明书</span></div>
+            <i class="fas fa-chevron-right text-gray-400"></i>
+        </div>
+        <div class="h-px bg-gray-100"></div>
+        <div onclick="app.goTo('references')" class="flex items-center justify-between py-3 cursor-pointer">
+            <div class="flex items-center gap-3"><div class="w-9 h-9 bg-sky-100 rounded-lg flex items-center justify-center text-sky-600"><i class="fas fa-book-medical"></i></div><span class="text-gray-900 font-medium">参考文献与算法解析</span></div>
+            <i class="fas fa-chevron-right text-gray-400"></i>
+        </div>
+        <div class="h-px bg-gray-100"></div>
+        <div onclick="app.goTo('report')" class="flex items-center justify-between py-3 cursor-pointer">
+            <div class="flex items-center gap-3"><div class="w-9 h-9 bg-rose-100 rounded-lg flex items-center justify-center text-rose-600"><i class="fas fa-file-medical"></i></div><span class="text-gray-900 font-medium">模拟体检报告</span></div>
+            <i class="fas fa-chevron-right text-gray-400"></i>
+        </div>
+        <div class="h-px bg-gray-100"></div>
+        <div onclick="app.goTo('risk')" class="flex items-center justify-between py-3 cursor-pointer">
+            <div class="flex items-center gap-3"><div class="w-9 h-9 bg-fuchsia-100 rounded-lg flex items-center justify-center text-fuchsia-600"><i class="fas fa-virus"></i></div><span class="text-gray-900 font-medium">缺乏症风险推算</span></div>
+            <i class="fas fa-chevron-right text-gray-400"></i>
+        </div>
+    </div>
+    <div class="card mx-5 mt-4 space-y-1">
+        <div class="flex items-center justify-between py-3">
+            <div class="flex items-center gap-3"><div class="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600"><i class="fas fa-database"></i></div><span class="text-gray-900 font-medium">数据管理</span></div>
+        </div>
+        <div class="h-px bg-gray-100"></div>
+        <button onclick="app.resetData()" class="w-full text-left flex items-center gap-3 py-3 text-red-500">
+            <div class="w-9 h-9 bg-red-100 rounded-lg flex items-center justify-center text-red-600"><i class="fas fa-trash-alt"></i></div>
+            <span class="font-medium">重置所有数据</span>
+        </button>
+    </div>
+    <div class="text-center mt-8 text-gray-400 text-xs">
+        <p>食刻 AI 营养管家 v2.0</p>
+        <p class="mt-1">本应用建议仅供参考，不能替代专业医疗建议</p>
+    </div>
+</div>
+
+<!-- ============ 使用说明书 ============ -->
+<div id="page-manual" class="page">
+    <div class="bg-white px-5 pt-12 pb-4 sticky top-0 z-10 flex items-center gap-3">
+        <button onclick="app.backFromManual()" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"><i class="fas fa-arrow-left"></i></button>
+        <h2 class="text-xl font-bold">使用说明书</h2>
+    </div>
+    <div class="manual-content px-5 pb-12">
+        <div class="tip-box"><strong>欢迎使用食刻 v2.0！</strong><br>本说明书将帮助你快速上手这款 AI 智能营养追踪应用。</div>
+        
+        <h2>📱 应用概述</h2>
+        <p>「食刻」是一款基于 AI 技术的个人营养摄入管理应用，创新性地引入「摄入-储备-消耗」三维动态平衡模型。通过拍摄食物、记录运动，自动追踪营养摄入与身体有机物储备变化，帮助你科学饮食、精准运动。</p>
+        
+        <h2>🚀 快速开始</h2>
+        <h3>1. 建立健康档案</h3>
+        <p>首次使用需要填写个人健康信息，包括基本信息、健康状况、体检数据。系统将据此：</p>
+        <ul>
+            <li>计算你的每日营养目标</li>
+            <li><strong>估算你体内有机物储备量</strong>（糖原、脂肪、蛋白质）</li>
+        </ul>
+        
+        <h3>2. 四大核心功能入口</h3>
+        <ul>
+            <li><strong>营养目标</strong>：查看每日应摄入的 27 项营养素标准</li>
+            <li><strong>拍一拍</strong>：拍包装或食物，自动记录营养并增加身体储备</li>
+            <li><strong>身体储备</strong>：实时查看体内糖原、脂肪、蛋白质的储量变化</li>
+            <li><strong>运动消耗</strong>：记录运动，自动计算能量消耗及有机物分解</li>
+        </ul>
+        
+        <h2>📸 拍一拍（记录摄入）</h2>
+        <h3>有包装食品</h3>
+        <p>选择「拍包装」模式，拍摄营养成分表和净含量。系统读取数据后，支持分批食用设置，自动按公式换算：营养素 = 每100g含量 × (净含量÷100) × 食用比例。</p>
+        <h3>无包装实物</h3>
+        <p>选择「拍实物」模式，AI 识别食物种类和估算重量。确认后，摄入的营养物质将<strong>增加你的身体储备</strong>。</p>
+        
+        <h2>🏃 运动消耗</h2>
+        <p>在首页点击「运动消耗」，选择运动类型并输入时长。系统将自动计算：</p>
+        <ul>
+            <li>总消耗能量（kcal 和 kJ）</li>
+            <li>按消耗优先级分解的有机物量：糖原 → 脂肪 → 蛋白质</li>
+        </ul>
+        <div class="tip-box">
+            <strong>消耗优先级（生理顺序）：</strong><br>
+            ① 0-30分钟：主要消耗糖原（肌糖原+肝糖原）<br>
+            ② 30-60分钟：糖原+脂肪混合供能<br>
+            ③ 60分钟以上：脂肪为主，少量蛋白质参与<br>
+            高强度运动优先消耗糖原，低强度长时间运动更多消耗脂肪。
+        </div>
+        
+        <h2>📊 消耗柱状图</h2>
+        <p>在「我的」页面点击「消耗柱状图」，查看今日各项运动消耗的能量（kJ）及分解的有机物量（g）的柱状图对比。帮助你了解不同运动对身体的实际影响。</p>
+        
+        <h2>🏭 身体储备</h2>
+        <p>在首页点击「身体储备」，查看体内有机物储量动态面板：</p>
+        <ul>
+            <li><strong>糖原</strong>：肝脏约100g + 肌肉约400g，运动优先消耗</li>
+            <li><strong>脂肪</strong>：体脂储存，长时间运动的主要能量来源</li>
+            <li><strong>蛋白质</strong>：肌肉和组织构成，仅在长期能量不足时大量分解</li>
+        </ul>
+        <p>摄入食物 → 储备增加；记录运动 → 储备减少。实时显示今日净变化。</p>
+        
+        <h2>📈 摄入详情与进度</h2>
+        <p>底部导航「摄入详情」展示今日 27 项营养素的摄入进度条：</p>
+        <ul>
+            <li><span style="color:#3B82F6">● 蓝色</span>：0-50%，摄入不足</li>
+            <li><span style="color:#10B981">● 绿色</span>：50-80%，摄入良好</li>
+            <li><span style="color:#F59E0B">● 橙色</span>：80-100%，接近目标</li>
+            <li><span style="color:#EF4444">● 红色</span>：超过100%，摄入超标</li>
+        </ul>
+        
+        <h2>💡 AI 饮食建议</h2>
+        <p>每次记录后自动生成结构化建议，包括当前摄入概况、需关注项、下一餐建议、健康小贴士。</p>
+        
+        <h2>⚠️ 注意事项</h2>
+        <ul>
+            <li>本应用建议<strong>不能替代专业医疗诊断</strong>，如有疾病请遵医嘱。</li>
+            <li>身体储备量为估算值，基于标准生理学模型，个体差异可能存在。</li>
+            <li>运动消耗的能量来源比例为估算模型，实际受运动强度、空腹状态、训练水平等影响。</li>
+            <li>所有数据存储在本地浏览器中，清除数据会导致记录丢失。</li>
+            <li>建议定期（如每3个月或体检后）更新健康档案。</li>
+        </ul>
+        
+        <div class="tip-box mt-6"><strong>祝你使用愉快，科学管理每一口、每一步！</strong></div>
+    </div>
+</div>
+
+<!-- ============ 缺乏症风险页 ============ -->
+<div id="page-risk" class="page">
+    <div class="bg-white px-5 pt-12 pb-4 sticky top-0 z-10 flex items-center gap-3">
+        <button onclick="app.goTo('home')" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"><i class="fas fa-arrow-left"></i></button>
+        <h2 class="text-xl font-bold">缺乏症风险推算</h2>
+    </div>
+    <div class="px-5 pb-4">
+        <p class="text-sm text-gray-500">基于近期摄入 + 体内储备 + 个人状态，估算各类缺乏症发病概率（科学模型，仅供参考）</p>
+    </div>
+
+    <div class="card mx-5">
+        <h3 class="font-bold text-gray-900 mb-2">发病概率分布</h3>
+        <div class="chart-container" style="height:300px;">
+            <canvas id="chart-risk"></canvas>
+        </div>
+    </div>
+
+    <div class="card mx-5">
+        <h3 class="font-bold text-gray-900 mb-3">各项缺乏症概率明细</h3>
+        <div id="risk-list" class="space-y-1"></div>
+    </div>
+
+    <div class="card mx-5">
+        <h3 class="font-bold text-gray-900 mb-3">推荐补充食物（TOP）</h3>
+        <div id="risk-food-rec" class="space-y-2"></div>
+    </div>
+</div>
+
+<!-- ============ 储量条形统计图 ============ -->
+<div id="page-stock-chart" class="page">
+    <div class="bg-white px-5 pt-12 pb-4 sticky top-0 z-10 flex items-center gap-3">
+        <button onclick="app.goTo('home')" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"><i class="fas fa-arrow-left"></i></button>
+        <h2 class="text-xl font-bold">体内储量条形统计</h2>
+    </div>
+    <div class="px-5 pb-4">
+        <p class="text-sm text-gray-500">每种体内储存物质的当前储量 / 参考上限</p>
+    </div>
+
+    <div class="card mx-5">
+        <h3 class="font-bold text-gray-900 mb-2">能量物质储量（g）</h3>
+        <div class="chart-container" style="height:220px;">
+            <canvas id="chart-energy-stock"></canvas>
+        </div>
+    </div>
+
+    <div class="card mx-5">
+        <h3 class="font-bold text-gray-900 mb-2">维生素储量（相对充足度 %）</h3>
+        <div class="chart-container" style="height:280px;">
+            <canvas id="chart-vit-stock"></canvas>
+        </div>
+    </div>
+
+    <div class="card mx-5">
+        <h3 class="font-bold text-gray-900 mb-2">无机盐储量（相对充足度 %）</h3>
+        <div class="chart-container" style="height:280px;">
+            <canvas id="chart-min-stock"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- ============ 模拟体检报告页 ============ -->
+<div id="page-report" class="page">
+    <div class="bg-white px-5 pt-12 pb-4 sticky top-0 z-10 flex items-center gap-3">
+        <button onclick="app.goTo('home')" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"><i class="fas fa-arrow-left"></i></button>
+        <h2 class="text-xl font-bold">模拟体检报告</h2>
+    </div>
+    <div class="px-5 pb-4">
+        <p class="text-sm text-gray-500">基于体内有机物储备 + 摄入状态推演（非真实医学检查，请以医院体检为准）</p>
+    </div>
+
+    <div class="report-section" style="border-left-color:#10B981;">
+        <h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2"><i class="fas fa-id-card text-emerald-500"></i>受检人信息</h3>
+        <div id="report-basic"></div>
+    </div>
+
+    <div class="report-section" style="border-left-color:#3B82F6;">
+        <h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2"><i class="fas fa-weight text-blue-500"></i>体格检查</h3>
+        <div id="report-body"></div>
+    </div>
+
+    <div class="report-section" style="border-left-color:#F59E0B;">
+        <h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2"><i class="fas fa-vial text-amber-500"></i>能量与代谢</h3>
+        <div id="report-energy"></div>
+    </div>
+
+    <div class="report-section" style="border-left-color:#8B5CF6;">
+        <h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2"><i class="fas fa-flask text-purple-500"></i>营养素水平</h3>
+        <div id="report-nutrient"></div>
+    </div>
+
+    <div class="report-section" style="border-left-color:#EF4444;">
+        <h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2"><i class="fas fa-stethoscope text-red-500"></i>主要风险提示</h3>
+        <div id="report-risk"></div>
+    </div>
+
+    <div class="report-section" style="border-left-color:#10B981;">
+        <h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2"><i class="fas fa-comment-medical text-emerald-500"></i>综合医嘱</h3>
+        <p id="report-comment" class="text-sm text-gray-700 leading-relaxed"></p>
+        <p class="text-xs text-gray-400 mt-3">报告生成时间：<span id="report-time"></span></p>
+    </div>
+</div>
+
+<!-- ============ 参考文献页 ============ -->
+<div id="page-references" class="page">
+    <div class="bg-white px-5 pt-12 pb-4 sticky top-0 z-10 flex items-center gap-3">
+        <button onclick="app.goTo('profile')" class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600"><i class="fas fa-arrow-left"></i></button>
+        <h2 class="text-xl font-bold">参考文献与算法解析</h2>
+    </div>
+    <div class="px-5 pb-4">
+        <p class="text-sm text-gray-500">本应用所有计算算法均基于以下生物学/营养学权威文献</p>
+    </div>
+    <div class="px-5 pb-8" id="references-list"></div>
+</div>
+
+<!-- ============ 底部导航 ============ -->
+<div class="bottom-nav" id="bottom-nav" style="display:none;">
+    <div class="nav-item active" onclick="app.goTo('home')" data-page="home"><i class="fas fa-home"></i><span>首页</span></div>
+    <div class="nav-item" onclick="app.goTo('detail')" data-page="detail"><i class="fas fa-chart-pie"></i><span>摄入详情</span></div>
+    <div class="nav-item" onclick="app.goTo('advice')" data-page="advice"><i class="fas fa-lightbulb"></i><span>建议</span></div>
+    <div class="nav-item" onclick="app.goTo('profile')" data-page="profile"><i class="fas fa-user"></i><span>我的</span></div>
+</div>
+
+<script>
+// ==================== 食物数据库 ====================
+const foodDatabase = {
+    '伊利纯牛奶': { emoji: '🥛', type: 'packaged', netWeight: 250, nutrientsPer100g: { energy: 54, protein: 3.0, fat: 3.2, carbs: 4.8, fiber: 0, va: 24, vd: 1.1, ve: 0, vb1: 0.03, vb2: 0.14, vb6: 0.04, vb12: 0.4, vc: 1, niacin: 0.1, folate: 5, pantothenic: 0.2, calcium: 100, phosphorus: 73, potassium: 150, sodium: 55, magnesium: 11, iron: 0.1, zinc: 0.4, iodine: 0, selenium: 1.5, copper: 0.01, water: 88 } },
+    '康师傅红烧牛肉面': { emoji: '🍜', type: 'packaged', netWeight: 104, nutrientsPer100g: { energy: 476, protein: 8.5, fat: 21.0, carbs: 62.0, fiber: 2.0, va: 50, vd: 0, ve: 2.0, vb1: 0.2, vb2: 0.1, vb6: 0.15, vb12: 0.3, vc: 0, niacin: 3.0, folate: 30, pantothenic: 0.5, calcium: 30, phosphorus: 120, potassium: 180, sodium: 2000, magnesium: 25, iron: 2.0, zinc: 0.8, iodine: 5, selenium: 5.0, copper: 0.1, water: 6 } },
+    '奥利奥饼干': { emoji: '🍪', type: 'packaged', netWeight: 116, nutrientsPer100g: { energy: 484, protein: 5.6, fat: 21.5, carbs: 67.8, fiber: 2.5, va: 0, vd: 0, ve: 1.5, vb1: 0.08, vb2: 0.05, vb6: 0.05, vb12: 0, vc: 0, niacin: 1.5, folate: 10, pantothenic: 0.2, calcium: 40, phosphorus: 100, potassium: 200, sodium: 520, magnesium: 20, iron: 2.5, zinc: 0.5, iodine: 0, selenium: 3.0, copper: 0.1, water: 3 } },
+    '可口可乐': { emoji: '🥤', type: 'packaged', netWeight: 330, nutrientsPer100g: { energy: 43, protein: 0, fat: 0, carbs: 10.6, fiber: 0, va: 0, vd: 0, ve: 0, vb1: 0, vb2: 0, vb6: 0, vb12: 0, vc: 0, niacin: 0, folate: 0, pantothenic: 0, calcium: 3, phosphorus: 10, potassium: 1, sodium: 4, magnesium: 0, iron: 0, zinc: 0, iodine: 0, selenium: 0, copper: 0, water: 89 } },
+    '苹果': { emoji: '🍎', type: 'food', netWeight: 200, estimated: true, nutrientsPer100g: { energy: 52, protein: 0.3, fat: 0.2, carbs: 13.8, fiber: 2.4, va: 3, vd: 0, ve: 0.2, vb1: 0.02, vb2: 0.03, vb6: 0.04, vb12: 0, vc: 4.6, niacin: 0.1, folate: 5, pantothenic: 0.1, calcium: 6, phosphorus: 11, potassium: 107, sodium: 1, magnesium: 5, iron: 0.1, zinc: 0.04, iodine: 0, selenium: 0, copper: 0.03, water: 86 } },
+    '米饭': { emoji: '🍚', type: 'food', netWeight: 250, estimated: true, nutrientsPer100g: { energy: 130, protein: 2.7, fat: 0.3, carbs: 28.2, fiber: 0.4, va: 0, vd: 0, ve: 0.04, vb1: 0.02, vb2: 0.01, vb6: 0.05, vb12: 0, vc: 0, niacin: 0.4, folate: 3, pantothenic: 0.2, calcium: 10, phosphorus: 43, potassium: 35, sodium: 1, magnesium: 12, iron: 0.2, zinc: 0.5, iodine: 0, selenium: 6.0, copper: 0.05, water: 68 } },
+    '鸡蛋': { emoji: '🥚', type: 'food', netWeight: 50, estimated: true, nutrientsPer100g: { energy: 143, protein: 12.6, fat: 9.5, carbs: 0.7, fiber: 0, va: 160, vd: 2.0, ve: 1.0, vb1: 0.09, vb2: 0.3, vb6: 0.17, vb12: 1.0, vc: 0, niacin: 0.1, folate: 47, pantothenic: 1.2, calcium: 56, phosphorus: 198, potassium: 138, sodium: 142, magnesium: 12, iron: 2.0, zinc: 1.3, iodine: 25, selenium: 15.0, copper: 0.05, water: 76 } },
+    '香蕉': { emoji: '🍌', type: 'food', netWeight: 120, estimated: true, nutrientsPer100g: { energy: 89, protein: 1.1, fat: 0.3, carbs: 22.8, fiber: 2.6, va: 3, vd: 0, ve: 0.1, vb1: 0.03, vb2: 0.07, vb6: 0.37, vb12: 0, vc: 8.7, niacin: 0.7, folate: 20, pantothenic: 0.3, calcium: 5, phosphorus: 22, potassium: 358, sodium: 1, magnesium: 27, iron: 0.3, zinc: 0.15, iodine: 0, selenium: 1.0, copper: 0.08, water: 75 } },
+    '鸡胸肉': { emoji: '🍗', type: 'food', netWeight: 150, estimated: true, nutrientsPer100g: { energy: 165, protein: 31.0, fat: 3.6, carbs: 0, fiber: 0, va: 6, vd: 0.1, ve: 0.3, vb1: 0.07, vb2: 0.1, vb6: 0.6, vb12: 0.2, vc: 0, niacin: 13.4, folate: 4, pantothenic: 1.0, calcium: 15, phosphorus: 210, potassium: 256, sodium: 74, magnesium: 29, iron: 1.0, zinc: 1.0, iodine: 6, selenium: 24.0, copper: 0.04, water: 65 } },
+    '西兰花': { emoji: '🥦', type: 'food', netWeight: 150, estimated: true, nutrientsPer100g: { energy: 34, protein: 2.8, fat: 0.4, carbs: 6.6, fiber: 2.6, va: 31, vd: 0, ve: 0.8, vb1: 0.07, vb2: 0.12, vb6: 0.18, vb12: 0, vc: 89.2, niacin: 0.6, folate: 63, pantothenic: 0.6, calcium: 47, phosphorus: 66, potassium: 316, sodium: 33, magnesium: 21, iron: 0.7, zinc: 0.4, iodine: 0, selenium: 2.5, copper: 0.05, water: 90 } }
+};
+
+const exerciseTypes = {
+    walk: { name: '慢走', emoji: '🚶', kcalPerMin: 3.5, intensity: 'low' },
+    jog: { name: '慢跑', emoji: '🏃', kcalPerMin: 8, intensity: 'medium' },
+    run: { name: '快跑', emoji: '⚡', kcalPerMin: 12, intensity: 'high' },
+    cycle: { name: '骑行', emoji: '🚴', kcalPerMin: 7, intensity: 'medium' },
+    swim: { name: '游泳', emoji: '🏊', kcalPerMin: 10, intensity: 'high' },
+    yoga: { name: '瑜伽', emoji: '🧘', kcalPerMin: 3, intensity: 'low' },
+    hiit: { name: 'HIIT', emoji: '🔥', kcalPerMin: 15, intensity: 'high' },
+    weights: { name: '力量训练', emoji: '🏋️', kcalPerMin: 6, intensity: 'medium' }
+};
+
+const nutrientMeta = {
+    energy: { name: '能量', unit: 'kcal', category: '能量', order: 1 },
+    protein: { name: '蛋白质', unit: 'g', category: '宏量营养素', order: 2 },
+    fat: { name: '脂肪', unit: 'g', category: '宏量营养素', order: 3 },
+    carbs: { name: '碳水化合物', unit: 'g', category: '宏量营养素', order: 4 },
+    fiber: { name: '膳食纤维', unit: 'g', category: '宏量营养素', order: 5 },
+    va: { name: '维生素A', unit: 'μg', category: '维生素', order: 6 },
+    vd: { name: '维生素D', unit: 'μg', category: '维生素', order: 7 },
+    ve: { name: '维生素E', unit: 'mg', category: '维生素', order: 8 },
+    vb1: { name: '维生素B1', unit: 'mg', category: '维生素', order: 9 },
+    vb2: { name: '维生素B2', unit: 'mg', category: '维生素', order: 10 },
+    vb6: { name: '维生素B6', unit: 'mg', category: '维生素', order: 11 },
+    vb12: { name: '维生素B12', unit: 'μg', category: '维生素', order: 12 },
+    vc: { name: '维生素C', unit: 'mg', category: '维生素', order: 13 },
+    niacin: { name: '烟酸', unit: 'mg', category: '维生素', order: 14 },
+    folate: { name: '叶酸', unit: 'μg', category: '维生素', order: 15 },
+    pantothenic: { name: '泛酸', unit: 'mg', category: '维生素', order: 16 },
+    calcium: { name: '钙', unit: 'mg', category: '无机盐', order: 17 },
+    phosphorus: { name: '磷', unit: 'mg', category: '无机盐', order: 18 },
+    potassium: { name: '钾', unit: 'mg', category: '无机盐', order: 19 },
+    sodium: { name: '钠', unit: 'mg', category: '无机盐', order: 20 },
+    magnesium: { name: '镁', unit: 'mg', category: '无机盐', order: 21 },
+    iron: { name: '铁', unit: 'mg', category: '无机盐', order: 22 },
+    zinc: { name: '锌', unit: 'mg', category: '无机盐', order: 23 },
+    iodine: { name: '碘', unit: 'μg', category: '无机盐', order: 24 },
+    selenium: { name: '硒', unit: 'μg', category: '无机盐', order: 25 },
+    copper: { name: '铜', unit: 'mg', category: '无机盐', order: 26 },
+    water: { name: '水分', unit: 'ml', category: '水', order: 27 }
+};
+
+// ==================== 缺乏症数据库 ====================
+// 每个缺乏症: { name, nutrient(关联营养素key), threshold(摄入%阈值), symptoms, foods, refKey }
+const deficiencyDatabase = [
+    { id: 'protein-def', name: '蛋白质-能量营养不良 (PEM)', nutrient: 'protein', threshold: 0.5, symptoms: '消瘦、免疫力下降、伤口愈合慢、毛发稀疏', foods: ['鸡胸肉','鸡蛋','牛奶','豆腐','鱼肉'], refKey: 'who_pem' },
+    { id: 'va-def', name: '维生素A缺乏症（夜盲症）', nutrient: 'va', threshold: 0.5, symptoms: '夜间视力下降、干眼症、皮肤角化', foods: ['胡萝卜','南瓜','猪肝','菠菜','鸡蛋'], refKey: 'who_va' },
+    { id: 'vd-def', name: '维生素D缺乏（佝偻病/骨软化）', nutrient: 'vd', threshold: 0.5, symptoms: '骨痛、肌无力、儿童佝偻病、成人骨软化', foods: ['三文鱼','鸡蛋黄','强化牛奶','蘑菇','沙丁鱼'], refKey: 'iom_vd' },
+    { id: 've-def', name: '维生素E缺乏症', nutrient: 've', threshold: 0.4, symptoms: '神经肌肉损害、溶血性贫血、免疫低下', foods: ['坚果','植物油','麦胚','菠菜','西兰花'], refKey: 'nih_ve' },
+    { id: 'vb1-def', name: '维生素B1缺乏（脚气病）', nutrient: 'vb1', threshold: 0.5, symptoms: '多发性神经炎、心脏扩大、水肿、Wernicke脑病', foods: ['全麦','瘦肉','豆类','坚果','糙米'], refKey: 'who_b1' },
+    { id: 'vb2-def', name: '维生素B2缺乏（口角炎）', nutrient: 'vb2', threshold: 0.5, symptoms: '口角炎、唇炎、舌炎、脂溢性皮炎、畏光', foods: ['牛奶','鸡蛋','瘦肉','绿叶菜','蘑菇'], refKey: 'who_b2' },
+    { id: 'vb6-def', name: '维生素B6缺乏症', nutrient: 'vb6', threshold: 0.5, symptoms: '皮炎、贫血、神经精神症状、惊厥', foods: ['鸡胸肉','香蕉','土豆','三文鱼','坚果'], refKey: 'nih_b6' },
+    { id: 'vb12-def', name: '维生素B12缺乏（巨幼细胞贫血）', nutrient: 'vb12', threshold: 0.5, symptoms: '巨幼红细胞贫血、神经损害、舌炎', foods: ['牛肉','三文鱼','鸡蛋','牛奶','贝类'], refKey: 'nih_b12' },
+    { id: 'vc-def', name: '维生素C缺乏（坏血病）', nutrient: 'vc', threshold: 0.4, symptoms: '牙龈出血、皮下淤血、伤口难愈、关节痛', foods: ['橙子','猕猴桃','西兰花','彩椒','草莓'], refKey: 'who_vc' },
+    { id: 'niacin-def', name: '烟酸缺乏（糙皮病）', nutrient: 'niacin', threshold: 0.5, symptoms: '皮炎、腹泻、痴呆（3D）', foods: ['鸡胸肉','花生','金枪鱼','蘑菇','糙米'], refKey: 'nih_niacin' },
+    { id: 'folate-def', name: '叶酸缺乏（巨幼细胞贫血/神经管畸形）', nutrient: 'folate', threshold: 0.5, symptoms: '巨幼细胞贫血、孕期可致胎儿神经管缺陷', foods: ['菠菜','西兰花','豆类','动物肝脏','芦笋'], refKey: 'who_folate' },
+    { id: 'pantothenic-def', name: '泛酸缺乏症', nutrient: 'pantothenic', threshold: 0.4, symptoms: '少见，疲倦、头痛、感觉异常（烧灼足）', foods: ['鸡蛋','蘑菇','牛油果','瘦肉','酸奶'], refKey: 'nih_pa' },
+    { id: 'ca-def', name: '钙缺乏（骨质疏松/抽搐）', nutrient: 'calcium', threshold: 0.5, symptoms: '骨质疏松、肌肉抽搐、儿童佝偻病', foods: ['牛奶','酸奶','豆腐','芝麻','虾皮'], refKey: 'iom_ca' },
+    { id: 'fe-def', name: '铁缺乏性贫血', nutrient: 'iron', threshold: 0.5, symptoms: '乏力、心悸、面色苍白、指甲匙状', foods: ['瘦红肉','猪肝','菠菜','黑芝麻','蛤蜊'], refKey: 'who_fe' },
+    { id: 'zn-def', name: '锌缺乏症', nutrient: 'zinc', threshold: 0.5, symptoms: '生长迟缓、味觉减退、伤口难愈、免疫力差', foods: ['牡蛎','牛肉','南瓜籽','鸡肉','腰果'], refKey: 'nih_zn' },
+    { id: 'iod-def', name: '碘缺乏（甲状腺肿/克汀病）', nutrient: 'iodine', threshold: 0.5, symptoms: '甲状腺肿大、儿童智力发育受损', foods: ['海带','紫菜','加碘盐','海鱼','贝类'], refKey: 'who_iod' },
+    { id: 'se-def', name: '硒缺乏（克山病/大骨节病）', nutrient: 'selenium', threshold: 0.5, symptoms: '心肌病、关节软骨病变', foods: ['巴西坚果','三文鱼','鸡蛋','金枪鱼','糙米'], refKey: 'nih_se' },
+    { id: 'mg-def', name: '镁缺乏症', nutrient: 'magnesium', threshold: 0.5, symptoms: '肌肉痉挛、心律失常、疲乏', foods: ['南瓜籽','黑巧克力','菠菜','腰果','黑豆'], refKey: 'nih_mg' },
+    { id: 'k-def', name: '钾缺乏（低钾血症）', nutrient: 'potassium', threshold: 0.4, symptoms: '肌无力、心律不齐、肠麻痹', foods: ['香蕉','土豆','菠菜','酸奶','鳄梨'], refKey: 'who_k' },
+    { id: 'cu-def', name: '铜缺乏症', nutrient: 'copper', threshold: 0.4, symptoms: '小细胞低色素性贫血、中性粒细胞减少', foods: ['牡蛎','坚果','动物肝脏','黑巧克力','蘑菇'], refKey: 'nih_cu' },
+    { id: 'fiber-def', name: '膳食纤维不足（便秘/肠道菌群失衡）', nutrient: 'fiber', threshold: 0.4, symptoms: '便秘、血糖波动、肠菌失调、心血管风险升高', foods: ['燕麦','西兰花','红薯','豆类','全麦面包'], refKey: 'who_fiber' },
+    { id: 'water-def', name: '水分不足（脱水）', nutrient: 'water', threshold: 0.5, symptoms: '口渴、尿少色深、头痛、疲劳、皮肤干燥', foods: ['白开水','汤类','西瓜','黄瓜','椰子水'], refKey: 'who_water' }
+];
+
+// ==================== 运动消耗"偏重"系数 ====================
+// kcalShare: 各能量物质提供能量的占比（基础值，会随运动时长再叠加生理转换）
+// mineralLoss: 每分钟无机盐流失量（mg，主要是汗液中的Na+/K+/Mg2+/Ca2+）
+// 数据参考：McArdle WD et al. Exercise Physiology, 8th ed.；ACSM's Guidelines, 11th ed.；Maughan & Shirreffs 2010
+const exerciseProfiles = {
+    walk:    { glycogen: 0.35, fat: 0.60, protein: 0.05, sodiumLoss: 6,  potassiumLoss: 2, magnesiumLoss: 0.2, calciumLoss: 0.3 },  // 低强度有氧 主要脂肪
+    jog:     { glycogen: 0.55, fat: 0.40, protein: 0.05, sodiumLoss: 12, potassiumLoss: 3, magnesiumLoss: 0.3, calciumLoss: 0.4 },
+    run:     { glycogen: 0.80, fat: 0.15, protein: 0.05, sodiumLoss: 20, potassiumLoss: 5, magnesiumLoss: 0.5, calciumLoss: 0.6 },  // 高强度 糖原主导
+    cycle:   { glycogen: 0.60, fat: 0.35, protein: 0.05, sodiumLoss: 14, potassiumLoss: 4, magnesiumLoss: 0.3, calciumLoss: 0.4 },
+    swim:    { glycogen: 0.50, fat: 0.45, protein: 0.05, sodiumLoss: 8,  potassiumLoss: 3, magnesiumLoss: 0.3, calciumLoss: 0.3 },  // 水中出汗少
+    yoga:    { glycogen: 0.30, fat: 0.65, protein: 0.05, sodiumLoss: 4,  potassiumLoss: 1, magnesiumLoss: 0.1, calciumLoss: 0.2 },
+    hiit:    { glycogen: 0.85, fat: 0.10, protein: 0.05, sodiumLoss: 22, potassiumLoss: 6, magnesiumLoss: 0.5, calciumLoss: 0.6 },  // 极高强度无氧主导
+    weights: { glycogen: 0.70, fat: 0.20, protein: 0.10, sodiumLoss: 15, potassiumLoss: 4, magnesiumLoss: 0.4, calciumLoss: 0.5 }   // 力量训练蛋白质参与多
+};
+
+// ==================== 文献参考库 ====================
+const referencesDatabase = {
+    'bmr_mifflin': { title: 'Mifflin-St Jeor 基础代谢率（BMR）公式', tags:['BMR','能量'], desc:'男：BMR = 10×体重(kg) + 6.25×身高(cm) − 5×年龄 + 5；女：再 −166。该公式被美国营养与饮食学会认定为预测健康成人 BMR 最准确的方程。', algo:'本应用首页能量目标 = BMR × 活动系数 (PAL: 1.2~1.725)。', source:'Mifflin MD, St Jeor ST, et al. A new predictive equation for resting energy expenditure in healthy individuals. Am J Clin Nutr. 1990;51(2):241-247.' },
+    'tdee_pal': { title: '总能量消耗 TDEE 与 PAL 活动系数', tags:['TDEE'], desc:'TDEE = BMR × PAL。久坐 1.2、轻度活动 1.375、中度 1.55、重度 1.725、极重 1.9。', algo:'每日 kcal 目标 = round(BMR × PAL)。', source:'FAO/WHO/UNU Expert Consultation. Human energy requirements. FAO Food and Nutrition Technical Report Series 1, 2004.' },
+    'fuel_substrate': { title: '运动中三大供能物质的串行/并行利用', tags:['糖原','脂肪','蛋白质'], desc:'糖、脂肪、蛋白质同为能量物质，按"先糖后脂、最后蛋白"的代谢偏好被利用：① 短时高强度 → 糖原（无氧+有氧糖酵解）；② 中等强度长时间 → 脂肪 β-氧化为主；③ 糖原耗竭/长时间饥饿 → 蛋白质（糖异生）参与。无机盐、水、维生素 B 族等作为辅因子并行消耗（出汗丢失、辅酶参与三羧酸循环）。', algo:'saveExercise()：① 先尝试用糖原供能；糖原储备不足时切换脂肪；脂肪储备不足时再切换蛋白质（严格串行）。② 同时按 exerciseProfiles 表并行扣除汗液无机盐流失。', source:'Romijn JA, Coyle EF, et al. Regulation of endogenous fat and carbohydrate metabolism in relation to exercise intensity and duration. Am J Physiol. 1993;265(3):E380-91. / McArdle WD, Katch FI, Katch VL. Exercise Physiology, 8th ed., 2014.' },
+    'glycogen_stores': { title: '糖原储备生理量', tags:['糖原','储备'], desc:'肝糖原约 80–110 g（体重 ×1–1.5 g/kg），肌糖原约 300–500 g（体重 ×4–6 g/kg），合计约 400–600 g，约 1600–2400 kcal。', algo:'calculateReserves()：糖原储备 ≈ 体重(kg) × 5 g。', source:'Jensen J, Rustad PI, et al. The role of skeletal muscle glycogen breakdown for regulation of insulin sensitivity by exercise. Front Physiol. 2011;2:112.' },
+    'fat_stores': { title: '体脂储备估算', tags:['脂肪'], desc:'男性正常体脂率 12–20%，女性 18–28%；本应用使用 18%（男）/ 25%（女）作为默认值。', algo:'fatMass(g) = 体重(kg) × bodyFatPct × 1000。', source:'Gallagher D, Heymsfield SB, et al. Healthy percentage body fat ranges: an approach for developing guidelines based on body mass index. Am J Clin Nutr. 2000;72(3):694-701.' },
+    'protein_pool': { title: '体内蛋白质池', tags:['蛋白质'], desc:'体内蛋白质约占体重 16–18%，其中骨骼肌占大头（约 60%）。', algo:'proteinPool(g) = 体重 × 0.17 × 1000。', source:'Wolfe RR. The underappreciated role of muscle in health and disease. Am J Clin Nutr. 2006;84(3):475-482.' },
+    'rer_substrate': { title: '呼吸交换率 RER 决定底物比例', tags:['运动','底物'], desc:'RER=0.7 纯脂肪供能；RER=1.0 纯糖供能。低强度有氧 (~50% VO2max) 脂肪占 60% 以上；高强度 (>75% VO2max) 糖原占 70%+。本应用 exerciseProfiles 表即按此调校。', algo:'见 exerciseProfiles：walk/yoga 偏脂肪，run/hiit 偏糖原，weights 蛋白质比例略高。', source:'Brooks GA, Mercier J. Balance of carbohydrate and lipid utilization during exercise: the "crossover" concept. J Appl Physiol. 1994;76(6):2253-2261.' },
+    'sweat_loss': { title: '汗液无机盐丢失', tags:['无机盐','汗液'], desc:'每升汗液含钠 460–1840 mg、钾 160–390 mg、钙 ~20 mg、镁 ~10 mg。剧烈运动每小时可出汗 1–2 L。本应用据此对每分钟运动估算无机盐丢失。', algo:'saveExercise()：burnMinerals = 时长(分) × exerciseProfiles[type] 矿物质系数。', source:'Maughan RJ, Shirreffs SM. Dehydration and rehydration in competitive sport. Scand J Med Sci Sports. 2010;20 Suppl 3:40-47.' },
+    'rda_dri': { title: '每日营养素推荐摄入量 (DRIs)', tags:['DRI','RNI'], desc:'本应用 27 项营养素目标值参考《中国居民膳食营养素参考摄入量 (2023版)》以及 NIH ODS / IOM Dietary Reference Intakes。', algo:'calculateGoals() 中各项目标值。', source:'中国营养学会. 中国居民膳食营养素参考摄入量(2023版). 人民卫生出版社, 2023. / Institute of Medicine. Dietary Reference Intakes. National Academies Press.' },
+    'special_phase': { title: '特殊生理时期营养调整', tags:['孕期','哺乳期','经期'], desc:'孕中期能量+300kcal/孕晚期+450kcal、叶酸 600μg、铁 24mg；哺乳期能量+500kcal、钙 1000mg；经期铁 +5mg；青春期蛋白+10%；老年期蛋白质 1.0–1.2 g/kg。', algo:'calculateGoals() 末段按 selectedPhases 叠加。', source:'WHO. Guideline: Daily iron and folic acid supplementation in pregnant women, 2012. / Institute of Medicine. Dietary Reference Intakes for Calcium and Vitamin D, 2011.' },
+    'deficiency_prob': { title: '缺乏症发病概率推算模型', tags:['缺乏症','概率'], desc:'P(缺乏症) = 基线 + 摄入不足系数 + 储备不足系数 + 既往病史/特殊时期加权 − 当前补充加权，再 Logistic 函数映射至 0~95%。', algo:'computeDeficiencyRisks()：定义见源码。本模型为简化半定量模型，仅供参考。', source:'WHO. Vitamin and mineral requirements in human nutrition. 2nd ed. 2004. / Allen LH. How common is vitamin B-12 deficiency? Am J Clin Nutr. 2009;89(2):693S-696S.' },
+    'who_pem': { title: '蛋白质-能量营养不良 (PEM)', tags:['蛋白质'], desc:'长期蛋白质或能量摄入不足导致 Kwashiorkor、Marasmus 等。', source:'WHO. Management of severe malnutrition: a manual for physicians. Geneva, 1999.' },
+    'who_va': { title: '维生素A缺乏症', tags:['维生素A'], desc:'最早表现夜盲，进而 Bitot 斑、干眼症乃至失明。', source:'WHO. Global prevalence of vitamin A deficiency in populations at risk 1995-2005. Geneva, 2009.' },
+    'iom_vd': { title: '维生素D与骨骼健康', tags:['维生素D'], desc:'IOM RDA 600–800 IU/日，缺乏诊断阈值 25(OH)D < 50 nmol/L。', source:'Institute of Medicine. Dietary Reference Intakes for Calcium and Vitamin D. Washington: National Academies Press; 2011.' },
+    'nih_ve': { title: '维生素E', tags:['维生素E'], desc:'抗氧化作用，缺乏可致溶血与神经系统损害。', source:'NIH Office of Dietary Supplements. Vitamin E - Fact Sheet for Health Professionals. 2023.' },
+    'who_b1': { title: '硫胺素（B1）缺乏', tags:['维生素B1'], desc:'典型脚气病；酒精中毒患者常合并 Wernicke 脑病。', source:'WHO. Thiamine deficiency and its prevention and control in major emergencies. Geneva, 1999.' },
+    'who_b2': { title: '核黄素（B2）缺乏', tags:['维生素B2'], desc:'口角炎、唇炎、舌炎、脂溢性皮炎。', source:'Powers HJ. Riboflavin (vitamin B-2) and health. Am J Clin Nutr. 2003;77(6):1352-1360.' },
+    'nih_b6': { title: '维生素B6', tags:['维生素B6'], desc:'参与 100 多种酶反应，缺乏致皮炎、贫血、神经病变。', source:'NIH ODS. Vitamin B6 - Fact Sheet for Health Professionals. 2022.' },
+    'nih_b12': { title: '维生素B12', tags:['维生素B12'], desc:'素食者、老年人、胃切除患者高危。', source:'Allen LH. How common is vitamin B-12 deficiency? Am J Clin Nutr. 2009;89(2):693S-696S.' },
+    'who_vc': { title: '维生素C缺乏（坏血病）', tags:['维生素C'], desc:'胶原合成障碍，毛细血管脆性增加。', source:'Hemilä H, Chalker E. Vitamin C for preventing and treating the common cold. Cochrane Database Syst Rev. 2013;(1):CD000980.' },
+    'nih_niacin': { title: '烟酸缺乏', tags:['烟酸'], desc:'糙皮病 3D：dermatitis, diarrhea, dementia。', source:'NIH ODS. Niacin - Fact Sheet for Health Professionals. 2022.' },
+    'who_folate': { title: '叶酸与神经管缺陷', tags:['叶酸'], desc:'孕前及孕早期补充叶酸可显著降低神经管畸形发生。', source:'MRC Vitamin Study Research Group. Prevention of neural tube defects: results of the Medical Research Council Vitamin Study. Lancet. 1991;338(8760):131-137.' },
+    'nih_pa': { title: '泛酸', tags:['泛酸'], desc:'广泛存在于食物中，单独缺乏罕见。', source:'NIH ODS. Pantothenic Acid - Fact Sheet. 2021.' },
+    'iom_ca': { title: '钙与骨骼健康', tags:['钙'], desc:'青少年钙摄入对峰值骨量至关重要；老年人补钙+维D可降低骨折风险。', source:'Institute of Medicine. Dietary Reference Intakes for Calcium and Vitamin D. 2011.' },
+    'who_fe': { title: '铁缺乏与贫血', tags:['铁'], desc:'全球最普遍的营养缺乏，育龄女性和儿童高发。', source:'WHO. Iron deficiency anaemia: assessment, prevention and control. Geneva, 2001.' },
+    'nih_zn': { title: '锌缺乏', tags:['锌'], desc:'生长发育、免疫、味觉。', source:'NIH ODS. Zinc - Fact Sheet for Health Professionals. 2022.' },
+    'who_iod': { title: '碘缺乏病', tags:['碘'], desc:'通过加碘盐可有效预防。', source:'WHO/UNICEF/ICCIDD. Assessment of iodine deficiency disorders and monitoring their elimination, 3rd ed. Geneva, 2007.' },
+    'nih_se': { title: '硒', tags:['硒'], desc:'谷胱甘肽过氧化物酶辅因子；克山病高发于低硒地区。', source:'NIH ODS. Selenium - Fact Sheet. 2021.' },
+    'nih_mg': { title: '镁', tags:['镁'], desc:'参与 300+ 酶反应，缺乏与高血压、糖尿病等相关。', source:'NIH ODS. Magnesium - Fact Sheet for Health Professionals. 2022.' },
+    'who_k': { title: '钾', tags:['钾'], desc:'WHO 建议成人钾摄入≥3.51 g/日以降低血压。', source:'WHO. Guideline: Potassium intake for adults and children. Geneva, 2012.' },
+    'nih_cu': { title: '铜', tags:['铜'], desc:'铜与铁代谢密切相关。', source:'NIH ODS. Copper - Fact Sheet. 2022.' },
+    'who_fiber': { title: '膳食纤维与慢病', tags:['膳食纤维'], desc:'25-30 g/日摄入与冠心病、糖尿病、结直肠癌风险下降相关。', source:'Reynolds A, et al. Carbohydrate quality and human health: a series of systematic reviews and meta-analyses. Lancet. 2019;393(10170):434-445.' },
+    'who_water': { title: '水分需求', tags:['水'], desc:'成人 30 mL/kg/日，约 1.5–2 L 饮水。', source:'EFSA Panel on Dietetic Products. Scientific Opinion on Dietary Reference Values for water. EFSA Journal. 2010;8(3):1459.' },
+    'health_score': { title: '健康综合评分模型', tags:['评分'], desc:'本应用首页"健康分" = 100 − Σ(BMI偏差、血压偏差、血糖偏差、营养素达标率偏差、储备偏差) × 权重。落在 0–100，≥85 优秀、70–84 良好、60–69 一般、<60 需关注。', algo:'computeHealthScore() 中 weights 见源码注释。', source:'综合：WHO Healthy Lifestyle Score; Lloyd-Jones DM et al. Defining and setting national goals for cardiovascular health promotion. Circulation. 2010;121(4):586-613.' },
+    'ocr_api': { title: 'OCR 营养成分表识别接口', tags:['OCR','API'], desc:'POST /api/v1/ocr/nutrition-label\n请求：{ image: base64|url, locale: "zh-CN", returnRaw: true }\n响应：{ ok, productName:{value,conf}, netWeight:{value,unit,conf}, nutrients: [ {key, value, unit, conf} ], overallConf, rawText }\nconf 为 0–1 置信度。每100g 营养素至少识别：能量(kcal)、蛋白质、脂肪、碳水化合物、钠；扩展识别糖、膳食纤维、维生素、矿物质。', algo:'ocrService.recognizePackage(food)：模拟基于食物数据库与高斯噪声生成识别结果与逐字段置信度；前端展示后由用户校对再 commit。', source:'参考：百度智能云 OCR / Google Cloud Vision Document AI / Tesseract OCR；GB 28050-2011《预包装食品营养标签通则》对营养成分表的强制项规范。' },
+    'vision_api': { title: 'AI 视觉食物识别 + 营养估算接口', tags:['视觉AI','API'], desc:'POST /api/v1/vision/food-recognize\n请求：{ image: base64|url, userContext: { age, gender, diseases, phases } }\n响应：{ ok, primary: { name, emoji, weight, conf, nutrientsPer100g{...} }, candidates: [ {name,emoji,conf} ], overallConf, fallback: bool, reason }\n当 overallConf < 0.5 时 fallback=true，提示前端切换到数据库手动搜索。userContext 用于：糖尿病避免高糖估算、痛风调整嘌呤等下游建议。', algo:'visionService.recognizeFood(food, ctx)：返回 1 个主结果 + 2~3 个候选 + 置信度；置信度按相似食物的"易混程度"扰动；置信度低自动 fallback。', source:'参考：Food-101 数据集、Recipe1M+、Im2Calories (Meyers et al. ICCV 2015)、Google Cloud Vision、Microsoft Azure Computer Vision。' }
+};
+
+// ==================== OCR / 视觉 AI 服务（模拟实现 + 标准 API 规范） ====================
+// 真实接入：把 mockOcrCall / mockVisionCall 替换成对后端 HTTPS 接口的 fetch 即可。
+// 标准请求/响应见 referencesDatabase.ocr_api / vision_api。
+const aiService = {
+    // 高斯扰动：模拟识别误差
+    _noise(val, sigmaPct) {
+        if (typeof val !== 'number') return val;
+        const u1 = Math.random(), u2 = Math.random();
+        const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+        const noisy = val * (1 + z * sigmaPct);
+        return Math.max(0, +noisy.toFixed(val < 1 ? 2 : 1));
+    },
+    _conf(min = 0.6, max = 0.98) { return +(min + Math.random() * (max - min)).toFixed(2); },
+    _delay(ms) { return new Promise(res => setTimeout(res, ms)); },
+
+    // 场景A：拍包装 → OCR 营养成分表
+    // 返回标准 schema：{ ok, productName, netWeight, nutrients:[], overallConf, rawText }
+    async recognizePackage(foodKey) {
+        await this._delay(1200 + Math.random() * 700);
+        const food = foodDatabase[foodKey];
+        if (!food) return { ok: false, reason: 'no_data' };
+        // 名称识别：高置信
+        const nameConf = this._conf(0.85, 0.99);
+        // 净含量识别：高置信
+        const netConf = this._conf(0.88, 0.99);
+        // 营养素识别（核心 5 项必识别，其他扰动）
+        const core = ['energy','protein','fat','carbs','sodium'];
+        const extended = ['fiber','calcium','vc','va','iron','potassium','magnesium','zinc','vb1','vb2'];
+        const nutrients = [];
+        core.forEach(k => {
+            const v = food.nutrientsPer100g[k];
+            if (v === undefined) return;
+            nutrients.push({
+                key: k, name: nutrientMeta[k].name, unit: nutrientMeta[k].unit,
+                value: this._noise(v, 0.04), // ±4% 误差
+                conf: this._conf(0.85, 0.98)
+            });
+        });
+        extended.forEach(k => {
+            const v = food.nutrientsPer100g[k];
+            if (v === undefined || v === 0) return;
+            // 30% 概率扩展项识别失败（OCR 模糊）
+            if (Math.random() < 0.3) return;
+            nutrients.push({
+                key: k, name: nutrientMeta[k].name, unit: nutrientMeta[k].unit,
+                value: this._noise(v, 0.12),
+                conf: this._conf(0.55, 0.85)
+            });
+        });
+        const overall = +(nutrients.reduce((s, n) => s + n.conf, 0) / nutrients.length).toFixed(2);
+        return {
+            ok: true,
+            productName: { value: foodKey, conf: nameConf },
+            netWeight: { value: food.netWeight, unit: 'g', conf: netConf },
+            nutrients,
+            overallConf: overall,
+            rawText: `[模拟 OCR raw text] 净含量 ${food.netWeight}g · 营养成分表/100g`
+        };
+    },
+
+    // 场景B：拍实物 → 视觉 AI 识别 + 营养估算
+    async recognizeFood(foodKey, userContext) {
+        await this._delay(1400 + Math.random() * 800);
+        const food = foodDatabase[foodKey];
+        if (!food) return { ok: false, fallback: true, reason: 'no_match' };
+        const primaryConf = this._conf(0.55, 0.95);
+        // 易混食物作为候选
+        const otherFoods = Object.entries(foodDatabase).filter(([k, v]) => k !== foodKey && v.type === food.type);
+        otherFoods.sort(() => Math.random() - 0.5);
+        const candidates = [
+            { name: foodKey, emoji: food.emoji, conf: primaryConf },
+            ...otherFoods.slice(0, 2).map(([k, v]) => ({ name: k, emoji: v.emoji, conf: this._conf(0.2, primaryConf - 0.05) }))
+        ];
+        // 重量估算误差较大（视觉估重困难）
+        const estWeight = Math.max(20, Math.round(this._noise(food.netWeight, 0.18)));
+        // 各营养素：±8% 扰动
+        const nutrientsPer100g = {};
+        Object.entries(food.nutrientsPer100g).forEach(([k, v]) => { nutrientsPer100g[k] = this._noise(v, 0.08); });
+        const overall = primaryConf;
+        const fallback = primaryConf < 0.5;
+        return {
+            ok: true,
+            primary: { name: foodKey, emoji: food.emoji, weight: estWeight, conf: primaryConf, nutrientsPer100g },
+            candidates,
+            overallConf: overall,
+            fallback,
+            reason: fallback ? 'low_conf' : null,
+            userContext
+        };
+    }
+};
+
+// ==================== 应用核心 ====================
+const app = {
+    data: {
+        user: null,
+        goals: null,
+        reserves: null, // 身体储备（能量物质 + 维生素 + 无机盐）
+        todayRecords: [],
+        todayExercises: [],
+        aiSuggestions: [],
+        settings: { exerciseDays: 0 },
+        currentSetup: 1,
+        selectedGender: null,
+        selectedDiseases: [],
+        selectedDeficiencies: [],
+        selectedPhases: [],
+        selectedExercise: 0,
+        defPanelOpen: false,
+        cameraMode: 'package',
+        selectedFood: null,
+        batchEnabled: false,
+        batchRatio: 1,
+        customGrams: null,
+        selectedExerciseType: null,
+        manualReturnTo: 'profile',
+        chartKj: null,
+        chartOrganic: null,
+        chartRisk: null,
+        chartEnergyStock: null,
+        chartVitStock: null,
+        chartMinStock: null,
+        // OCR / AI 识别临时结果
+        ocrResult: null,
+        aiResult: null,
+        // 校对后用于摄入确认的"虚拟食物"
+        pendingFood: null
+    },
+    
+    init() {
+        const saved = localStorage.getItem('shike_data_v2');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            this.data.user = parsed.user;
+            this.data.goals = parsed.goals;
+            this.data.reserves = parsed.reserves;
+            this.data.todayRecords = parsed.todayRecords || [];
+            this.data.todayExercises = parsed.todayExercises || [];
+            this.data.aiSuggestions = parsed.aiSuggestions || [];
+            this.data.settings = parsed.settings || { exerciseDays: 0 };
+            const today = new Date().toDateString();
+            if (parsed.lastDate !== today) {
+                this.data.todayRecords = [];
+                this.data.todayExercises = [];
+                this.data.aiSuggestions = [];
+            }
+            // 数据迁移：补全旧版用户没有的字段
+            if (this.data.user) {
+                this.data.user.deficiencies = this.data.user.deficiencies || [];
+                this.data.user.phases = this.data.user.phases || [];
+                if (this.data.user.bpHigh === undefined && this.data.user.bloodPressure) {
+                    const m = (this.data.user.bloodPressure + '').split('/');
+                    this.data.user.bpHigh = parseInt(m[0]) || 120;
+                    this.data.user.bpLow = parseInt(m[1]) || 80;
+                }
+            }
+            if (this.data.reserves && !this.data.reserves.vitMin) {
+                const vm = {};
+                ['va','vd','ve','vb1','vb2','vb6','vb12','vc','niacin','folate','pantothenic',
+                 'calcium','phosphorus','potassium','sodium','magnesium','iron','zinc','iodine','selenium','copper','fiber'].forEach(k => vm[k] = 80);
+                this.data.reserves.vitMin = vm;
+                if (!this.data.reserves.waterMax) this.data.reserves.waterMax = this.data.reserves.water;
+            }
+            this.goTo('home');
+        }
+        this.renderCameraFoods();
+        this.renderDeficiencyOptions();
+        this.updateDate();
+    },
+    
+    save() {
+        localStorage.setItem('shike_data_v2', JSON.stringify({
+            user: this.data.user,
+            goals: this.data.goals,
+            reserves: this.data.reserves,
+            todayRecords: this.data.todayRecords,
+            todayExercises: this.data.todayExercises,
+            aiSuggestions: this.data.aiSuggestions,
+            settings: this.data.settings,
+            lastDate: new Date().toDateString()
+        }));
+    },
+    
+    goTo(page) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('page-' + page).classList.add('active');
+        const navPages = ['home', 'detail', 'advice', 'profile'];
+        const nav = document.getElementById('bottom-nav');
+        if (navPages.includes(page)) {
+            nav.style.display = 'flex';
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            const activeNav = document.querySelector(`.nav-item[data-page="${page}"]`);
+            if (activeNav) activeNav.classList.add('active');
+        } else {
+            nav.style.display = 'none';
+        }
+        if (page === 'home') this.renderHome();
+        if (page === 'goals') this.renderGoals();
+        if (page === 'detail') this.renderDetail();
+        if (page === 'advice') this.renderAdvice();
+        if (page === 'profile') this.renderProfile();
+        if (page === 'reserve') this.renderReserve();
+        if (page === 'burn-chart') this.renderBurnChart();
+        if (page === 'risk') this.renderRiskPage();
+        if (page === 'stock-chart') this.renderStockChart();
+        if (page === 'report') this.renderReport();
+        if (page === 'references') this.renderReferences();
+        window.scrollTo(0, 0);
+    },
+    
+    updateDate() {
+        const d = new Date();
+        const weeks = ['日','一','二','三','四','五','六'];
+        document.getElementById('home-date').textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 周${weeks[d.getDay()]}`;
+    },
+    
+    // ===== 设置流程 =====
+    selectGender(g) {
+        this.data.selectedGender = g;
+        document.getElementById('gender-male').className = g === 'male' ? 'flex-1 py-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-700 font-medium' : 'flex-1 py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-medium';
+        document.getElementById('gender-female').className = g === 'female' ? 'flex-1 py-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-700 font-medium' : 'flex-1 py-3 rounded-xl border-2 border-gray-200 text-gray-600 font-medium';
+    },
+    
+    toggleDisease(el, disease) {
+        if (disease === '无') {
+            this.data.selectedDiseases = [];
+            document.querySelectorAll('#disease-tags .chip').forEach(c => { c.style.background = '#ECFDF5'; c.style.color = '#059669'; c.style.borderColor = '#A7F3D0'; });
+            el.style.background = '#059669'; el.style.color = 'white'; el.style.borderColor = '#059669';
+            return;
+        }
+        const noChip = document.querySelector('#disease-tags .chip:first-child');
+        noChip.style.background = '#ECFDF5'; noChip.style.color = '#059669'; noChip.style.borderColor = '#A7F3D0';
+        const idx = this.data.selectedDiseases.indexOf(disease);
+        if (idx > -1) { this.data.selectedDiseases.splice(idx, 1); el.style.background = '#ECFDF5'; el.style.color = '#059669'; el.style.borderColor = '#A7F3D0'; }
+        else { this.data.selectedDiseases.push(disease); el.style.background = '#059669'; el.style.color = 'white'; el.style.borderColor = '#059669'; }
+    },
+    
+    selectExercise(days) {
+        this.data.selectedExercise = days;
+        [0,1,3,6].forEach(d => {
+            const btn = document.getElementById('ex-' + d);
+            btn.className = d === days ? 'flex-1 py-2 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-700 text-sm font-medium' : 'flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium';
+        });
+    },
+    
+    nextSetup(step) {
+        this.data.currentSetup = step;
+        document.querySelectorAll('.step-dot').forEach((d, i) => d.classList.toggle('active', i < step));
+        document.getElementById('setup-step1').classList.toggle('hidden', step !== 1);
+        document.getElementById('setup-step2').classList.toggle('hidden', step !== 2);
+        document.getElementById('setup-step3').classList.toggle('hidden', step !== 3);
+        const titles = ['基本信息', '健康状况', '体检与运动'];
+        const subs = ['告诉我们你的基本情况', '帮助我们了解你的健康状态', '完善档案获得精准建议'];
+        document.getElementById('setup-title').textContent = titles[step-1];
+        document.getElementById('setup-subtitle').textContent = subs[step-1];
+    },
+    
+    completeSetup() {
+        const name = document.getElementById('input-name').value || '用户';
+        const age = parseInt(document.getElementById('input-age').value) || 25;
+        const height = parseInt(document.getElementById('input-height').value) || 170;
+        const weight = parseFloat(document.getElementById('input-weight').value) || 65;
+        const bpHigh = parseInt(document.getElementById('input-bp-high').value) || 120;
+        const bpLow = parseInt(document.getElementById('input-bp-low').value) || 80;
+        const bloodSugar = parseFloat(document.getElementById('input-blood-sugar').value) || 5.0;
+        const vision = document.getElementById('input-vision').value || '未填写';
+        const teeth = document.getElementById('input-teeth').value || '未填写';
+        
+        this.data.user = {
+            name, gender: this.data.selectedGender || 'male', age, height, weight,
+            diseases: this.data.selectedDiseases.length ? this.data.selectedDiseases : ['无'],
+            deficiencies: this.data.selectedDeficiencies.slice(),
+            phases: this.data.selectedPhases.length ? this.data.selectedPhases.filter(p => p !== '无') : [],
+            bpHigh, bpLow, bloodPressure: `${bpHigh}/${bpLow}`, bloodSugar, vision, teeth,
+            exerciseDays: this.data.selectedExercise
+        };
+        this.data.settings.exerciseDays = this.data.selectedExercise;
+        this.calculateGoals();
+        this.calculateReserves();
+        this.save();
+        this.goTo('home');
+    },
+    
+    // ===== 营养目标计算 =====
+    // 算法：Mifflin-St Jeor BMR + PAL（FAO/WHO）+ DRI（中国 2023 + IOM）+ 病史/特殊时期调整
+    calculateGoals() {
+        const u = this.data.user;
+        let bmr = u.gender === 'male' ? 10*u.weight + 6.25*u.height - 5*u.age + 5 : 10*u.weight + 6.25*u.height - 5*u.age - 161;
+        const multipliers = {0: 1.2, 1: 1.375, 3: 1.55, 6: 1.725};
+        let tdee = Math.round(bmr * (multipliers[u.exerciseDays] || 1.375));
+        let goals = {
+            energy: tdee, protein: Math.round(u.weight * 1.0), fat: Math.round(tdee * 0.25 / 9), carbs: Math.round(tdee * 0.55 / 4),
+            fiber: 25, va: 800, vd: 10, ve: 14, vb1: 1.4, vb2: 1.4, vb6: 1.4, vb12: 2.4, vc: 100, niacin: 15, folate: 400, pantothenic: 5,
+            calcium: 800, phosphorus: 720, potassium: 2000, sodium: 2000, magnesium: 350, iron: u.gender === 'female' ? 20 : 12,
+            zinc: 12, iodine: 150, selenium: 60, copper: 0.8, water: Math.round(u.weight * 30)
+        };
+        // 病史调整
+        if (u.diseases.includes('糖尿病')) { goals.carbs = Math.round(goals.carbs * 0.8); goals.fiber = 35; }
+        if (u.diseases.includes('高血压')) { goals.sodium = 1500; goals.potassium = 3500; }
+        if (u.diseases.includes('高血脂')) { goals.fat = Math.round(goals.fat * 0.8); }
+        if (u.diseases.includes('肾病')) { goals.protein = Math.round(u.weight * 0.8); }
+        if (u.diseases.includes('贫血')) { goals.iron = u.gender === 'female' ? 30 : 20; goals.folate = 600; goals.vb12 = 4; }
+        if (u.diseases.includes('痛风')) { goals.protein = Math.round(u.weight * 0.8); goals.water = Math.max(goals.water, 2500); }
+        // 特殊时期叠加 (参考 WHO + IOM DRI)
+        (u.phases || []).forEach(p => {
+            if (p === '孕早期') { goals.folate = 600; goals.iron = 24; goals.protein += 5; }
+            if (p === '孕中期') { goals.energy += 300; goals.folate = 600; goals.iron = 24; goals.protein += 15; goals.calcium = 1000; }
+            if (p === '孕晚期') { goals.energy += 450; goals.folate = 600; goals.iron = 29; goals.protein += 30; goals.calcium = 1000; }
+            if (p === '哺乳期') { goals.energy += 500; goals.calcium = 1000; goals.protein += 25; goals.va = 1300; goals.vc = 150; goals.water += 700; }
+            if (p === '经期') { goals.iron += 5; goals.water += 200; }
+            if (p === '青春期生长') { goals.protein = Math.round(u.weight * 1.2); goals.calcium = 1200; goals.zinc = 15; }
+            if (p === '术后恢复') { goals.protein = Math.round(u.weight * 1.5); goals.vc = 200; goals.zinc = 20; }
+            if (p === '老年期') { goals.protein = Math.round(u.weight * 1.2); goals.vd = 15; goals.calcium = 1000; }
+            if (p === '减脂期') { goals.energy = Math.round(goals.energy * 0.85); goals.protein = Math.round(u.weight * 1.6); goals.fiber = 30; }
+            if (p === '增肌期') { goals.energy = Math.round(goals.energy * 1.15); goals.protein = Math.round(u.weight * 1.8); }
+        });
+        this.data.goals = goals;
+    },
+    
+    // ===== 身体储备计算 =====
+    // 算法：糖原 5 g/kg（Jensen 2011）、脂肪 18%(男)/25%(女)（Gallagher 2000）、蛋白质池 17%（Wolfe 2006）
+    calculateReserves() {
+        const u = this.data.user;
+        const weight = u.weight;
+        const bodyFatPct = u.gender === 'male' ? 0.18 : 0.25;
+        const fatMass = Math.round(weight * bodyFatPct * 1000); // g
+        const glycogen = Math.round(weight * 5); // g
+        const protein = Math.round(weight * 0.17 * 1000); // g
+        const water = Math.round(weight * 0.6 * 1000); // ml
+        // 维生素/无机盐储备（以百分比记，100=充足）
+        const vitMin = {};
+        ['va','vd','ve','vb1','vb2','vb6','vb12','vc','niacin','folate','pantothenic',
+         'calcium','phosphorus','potassium','sodium','magnesium','iron','zinc','iodine','selenium','copper','fiber'].forEach(k => vitMin[k] = 80);
+        // 既有缺乏症 → 起点更低
+        (this.data.selectedDeficiencies || []).forEach(defId => {
+            const def = deficiencyDatabase.find(d => d.id === defId);
+            if (def && vitMin[def.nutrient] !== undefined) vitMin[def.nutrient] = 25;
+        });
+        // 贫血特别处理
+        if ((u.diseases||[]).includes('贫血')) { vitMin.iron = Math.min(vitMin.iron, 20); vitMin.folate = Math.min(vitMin.folate, 30); vitMin.vb12 = Math.min(vitMin.vb12, 30); }
+        
+        this.data.reserves = {
+            glycogen, fat: fatMass, protein, water,
+            glycogenMax: glycogen, fatMax: fatMass, proteinMax: protein, waterMax: water,
+            vitMin
+        };
+    },
+
+    // ===== 缺乏症选择（设置页）=====
+    renderDeficiencyOptions(filter = '') {
+        const grid = document.getElementById('deficiency-grid');
+        if (!grid) return;
+        const list = deficiencyDatabase.filter(d => !filter || d.name.includes(filter) || (nutrientMeta[d.nutrient] && nutrientMeta[d.nutrient].name.includes(filter)));
+        grid.innerHTML = list.map(d => {
+            const sel = this.data.selectedDeficiencies.includes(d.id);
+            return `<div class="def-chip ${sel ? 'selected' : ''}" data-id="${d.id}" onclick="app.toggleDeficiency('${d.id}')"><i class="fas ${sel ? 'fa-check-circle' : 'fa-circle'}"></i><span>${d.name}</span></div>`;
+        }).join('') || '<div class="text-sm text-gray-400 col-span-2 text-center py-4">未找到匹配缺乏症</div>';
+    },
+    toggleDefPanel() {
+        this.data.defPanelOpen = !this.data.defPanelOpen;
+        document.getElementById('def-panel').classList.toggle('hidden', !this.data.defPanelOpen);
+        document.getElementById('def-chevron').classList.toggle('fa-chevron-down', !this.data.defPanelOpen);
+        document.getElementById('def-chevron').classList.toggle('fa-chevron-up', this.data.defPanelOpen);
+    },
+    filterDeficiencies(v) { this.renderDeficiencyOptions(v.trim()); },
+    toggleDeficiency(id) {
+        const i = this.data.selectedDeficiencies.indexOf(id);
+        if (i > -1) this.data.selectedDeficiencies.splice(i, 1);
+        else this.data.selectedDeficiencies.push(id);
+        this.renderDeficiencyOptions(document.getElementById('def-search').value.trim());
+        const n = this.data.selectedDeficiencies.length;
+        document.getElementById('def-summary').textContent = n ? `已选择 ${n} 项缺乏症` : '尚未选择 · 点击展开';
+    },
+
+    // ===== 特殊时期 =====
+    togglePhase(el, phase) {
+        if (phase === '无') {
+            this.data.selectedPhases = [];
+            document.querySelectorAll('#phase-tags .chip').forEach(c => { c.style.background = '#ECFDF5'; c.style.color = '#059669'; c.style.borderColor = '#A7F3D0'; });
+            el.style.background = '#059669'; el.style.color = 'white'; el.style.borderColor = '#059669';
+            return;
+        }
+        const noChip = document.querySelector('#phase-tags .chip:first-child');
+        noChip.style.background = '#ECFDF5'; noChip.style.color = '#059669'; noChip.style.borderColor = '#A7F3D0';
+        const idx = this.data.selectedPhases.indexOf(phase);
+        if (idx > -1) { this.data.selectedPhases.splice(idx, 1); el.style.background = '#ECFDF5'; el.style.color = '#059669'; el.style.borderColor = '#A7F3D0'; }
+        else { this.data.selectedPhases.push(phase); el.style.background = '#059669'; el.style.color = 'white'; el.style.borderColor = '#059669'; }
+    },
+    
+    // ===== 首页 =====
+    renderHome() {
+        if (!this.data.user) return;
+        document.getElementById('home-name').textContent = this.data.user.name;
+        // 体重 + 健康分
+        const u = this.data.user;
+        const { score, bmi, bmiTag } = this.computeHealthScore();
+        document.getElementById('home-weight').textContent = u.weight;
+        document.getElementById('home-bmi').textContent = bmi;
+        const bmiTagEl = document.getElementById('home-bmi-tag');
+        bmiTagEl.textContent = bmiTag;
+        bmiTagEl.className = 'badge ' + (bmiTag === '正常' ? 'badge-normal' : bmiTag === '肥胖' ? 'badge-danger' : 'badge-warn');
+        document.getElementById('home-score').textContent = score;
+        const scoreTip = score >= 85 ? '状态优秀，继续保持' : score >= 70 ? '状态良好，可微调' : score >= 60 ? '一般，注意调整' : '需重点关注';
+        document.getElementById('home-score-tip').textContent = scoreTip;
+        document.getElementById('home-score-ring').style.strokeDashoffset = 238.76 - 238.76 * (score / 100);
+        document.getElementById('home-score-ring').setAttribute('stroke', score >= 85 ? '#10B981' : score >= 70 ? '#3B82F6' : score >= 60 ? '#F59E0B' : '#EF4444');
+
+        const intake = this.getTodayIntake();
+        const burn = this.getTodayBurn();
+        const goals = this.data.goals;
+        
+        document.getElementById('home-intake').textContent = Math.round(intake.energy);
+        document.getElementById('home-burn').textContent = Math.round(burn.kcal);
+        document.getElementById('home-net').textContent = Math.round(intake.energy - burn.kcal);
+        document.getElementById('home-kcal').textContent = Math.round(intake.energy);
+        document.getElementById('home-kcal-goal').textContent = goals.energy;
+        document.getElementById('record-count').textContent = `已记录 ${this.data.todayRecords.length} 次`;
+        
+        const pct = Math.min(intake.energy / goals.energy, 1);
+        document.getElementById('home-ring').style.strokeDashoffset = 314 - (314 * pct);
+        
+        const list = document.getElementById('records-list');
+        const empty = document.getElementById('no-records');
+        const allRecords = [...this.data.todayRecords, ...this.data.todayExercises].sort((a,b) => (a.time||'').localeCompare(b.time||''));
+        if (allRecords.length === 0) {
+            list.classList.add('hidden'); empty.classList.remove('hidden');
+        } else {
+            list.classList.remove('hidden'); empty.classList.add('hidden');
+            list.innerHTML = allRecords.slice(-5).reverse().map(r => {
+                if (r.type === 'exercise') {
+                    return `<div class="flex items-center gap-3 bg-orange-50 rounded-xl p-3 border border-orange-100">
+                        <div class="text-2xl">${r.emoji}</div>
+                        <div class="flex-1"><div class="font-medium text-gray-900">${r.name}</div><div class="text-xs text-gray-500">${r.duration}分钟 · -${Math.round(r.kcal)} kcal</div></div>
+                        <div class="text-xs text-orange-500 font-medium">运动</div>
+                    </div>`;
+                }
+                return `<div class="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
+                    <div class="text-2xl">${r.emoji}</div>
+                    <div class="flex-1"><div class="font-medium text-gray-900">${r.name}</div><div class="text-xs text-gray-500">${r.grams}g · ${Math.round(r.nutrients.energy)} kcal</div></div>
+                    <div class="text-xs text-gray-400">${r.time}</div>
+                </div>`;
+            }).join('');
+        }
+    },
+    
+    getTodayIntake() {
+        const sum = {};
+        Object.keys(nutrientMeta).forEach(k => sum[k] = 0);
+        this.data.todayRecords.forEach(r => {
+            Object.keys(r.nutrients).forEach(k => { if (sum[k] !== undefined) sum[k] += r.nutrients[k]; });
+        });
+        return sum;
+    },
+    
+    getTodayBurn() {
+        let kcal = 0, kj = 0, glycogen = 0, fat = 0, protein = 0;
+        this.data.todayExercises.forEach(e => {
+            kcal += e.kcal;
+            kj += e.kj;
+            glycogen += e.burnGlycogen;
+            fat += e.burnFat;
+            protein += e.burnProtein;
+        });
+        return { kcal, kj, glycogen, fat, protein };
+    },
+    
+    // ===== 营养目标 =====
+    renderGoals() {
+        const goals = this.data.goals;
+        const container = document.getElementById('goals-list');
+        const categories = ['能量', '宏量营养素', '维生素', '无机盐', '水'];
+        container.innerHTML = categories.map(cat => {
+            const items = Object.entries(nutrientMeta).filter(([k, v]) => v.category === cat).sort((a, b) => a[1].order - b[1].order);
+            return `<div class="card"><h3 class="font-bold text-gray-900 mb-3 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>${cat}</h3><div class="space-y-3">${items.map(([key, meta]) => `<div class="flex items-center justify-between"><span class="text-gray-700 text-sm">${meta.name}</span><span class="font-bold text-gray-900">${goals[key]} <span class="text-gray-400 font-normal text-xs">${meta.unit}</span></span></div>`).join('')}</div></div>`;
+        }).join('');
+    },
+    
+    // ===== 身体储备 =====
+    renderReserve() {
+        if (!this.data.reserves) return;
+        const r = this.data.reserves;
+        const burn = this.getTodayBurn();
+        const intake = this.getTodayIntake();
+        const weight = this.data.user.weight;
+        
+        const addGly = Math.round((intake.carbs || 0) * 0.18);
+        const addFat = Math.round((intake.fat || 0) * 0.9);
+        const addPro = Math.round((intake.protein || 0) * 0.12);
+        
+        const totalReserve = r.glycogen + r.fat + r.protein;
+        document.getElementById('reserve-total').textContent = (totalReserve / 1000).toFixed(1) + ' kg';
+        document.getElementById('reserve-pct').textContent = ((totalReserve / 1000 / weight) * 100).toFixed(1);
+        document.getElementById('reserve-glycogen').textContent = Math.round(r.glycogen) + 'g';
+        document.getElementById('reserve-fat').textContent = (r.fat / 1000).toFixed(1) + 'kg';
+        document.getElementById('reserve-protein').textContent = (r.protein / 1000).toFixed(1) + 'kg';
+        
+        const addTotal = addGly + addFat + addPro;
+        const minusTotal = burn.glycogen + burn.fat + burn.protein;
+        document.getElementById('reserve-add').textContent = addTotal.toFixed(0);
+        document.getElementById('reserve-minus').textContent = minusTotal.toFixed(0);
+        const net = addTotal - minusTotal;
+        document.getElementById('reserve-net').textContent = (net > 0 ? '+' : '') + net.toFixed(0) + 'g';
+        
+        const container = document.getElementById('reserve-detail-list');
+        container.innerHTML = `
+            <div class="reserve-card">
+                <div class="flex items-center justify-between mb-2"><span class="text-white/70">糖原储备（首先被消耗）</span><span class="font-bold">${Math.round(r.glycogen)} / ${r.glycogenMax} g</span></div>
+                <div class="reserve-bar"><div class="reserve-fill" style="width:${Math.min(r.glycogen/r.glycogenMax*100,100)}%;background:#60A5FA;"></div></div>
+                <div class="text-white/50 text-xs mt-2">运动优先消耗 · 今日${burn.glycogen > 0 ? '消耗 ' + burn.glycogen.toFixed(0) + 'g' : '未消耗'}</div>
+            </div>
+            <div class="reserve-card">
+                <div class="flex items-center justify-between mb-2"><span class="text-white/70">脂肪储备（糖原耗尽后）</span><span class="font-bold">${(r.fat/1000).toFixed(2)} / ${(r.fatMax/1000).toFixed(2)} kg</span></div>
+                <div class="reserve-bar"><div class="reserve-fill" style="width:${Math.min(r.fat/r.fatMax*100,100)}%;background:#FBBF24;"></div></div>
+                <div class="text-white/50 text-xs mt-2">仅在糖原供能不足时才大量消耗 · 今日${burn.fat > 0 ? '消耗 ' + burn.fat.toFixed(1) + 'g' : '未消耗'}</div>
+            </div>
+            <div class="reserve-card">
+                <div class="flex items-center justify-between mb-2"><span class="text-white/70">蛋白质储备（最后兜底）</span><span class="font-bold">${(r.protein/1000).toFixed(2)} / ${(r.proteinMax/1000).toFixed(2)} kg</span></div>
+                <div class="reserve-bar"><div class="reserve-fill" style="width:${Math.min(r.protein/r.proteinMax*100,100)}%;background:#F87171;"></div></div>
+                <div class="text-white/50 text-xs mt-2">糖原+脂肪都不够时才被分解 · 今日${burn.protein > 0 ? '消耗 ' + burn.protein.toFixed(1) + 'g' : '未消耗'}</div>
+            </div>
+        `;
+    },
+    
+    // ===== 运动 =====
+    selectExerciseType(type) {
+        this.data.selectedExerciseType = type;
+        document.querySelectorAll('.exercise-item').forEach(el => {
+            el.classList.toggle('selected', el.dataset.type === type);
+        });
+        document.getElementById('btn-save-exercise').disabled = false;
+        document.getElementById('btn-save-exercise').classList.remove('opacity-50');
+    },
+    
+    setDuration(min) {
+        document.getElementById('input-duration').value = min;
+    },
+    
+    /**
+     * 运动消耗计算 —— 严格串行：糖原 → 脂肪 → 蛋白质
+     * 文献：Romijn et al. 1993; Brooks & Mercier 1994; McArdle 2014
+     * ① 计算总 kcal
+     * ② 按 exerciseProfiles 给出该运动"偏好"的能量底物比例（仅作为意向）
+     * ③ 进入串行扣减循环：先从糖原扣 → 糖原耗尽再扣脂肪 → 脂肪耗尽再扣蛋白质
+     *    （即"消耗糖时脂肪蛋白几乎不动"；不同运动只影响初始尝试比例和切换速度）
+     * ④ 同时并行扣除无机盐（汗液丢失）+ B族维生素（辅酶消耗）
+     */
+    saveExercise() {
+        const type = this.data.selectedExerciseType;
+        const duration = parseInt(document.getElementById('input-duration').value) || 30;
+        if (!type || duration <= 0) return;
+        
+        const et = exerciseTypes[type];
+        const profile = exerciseProfiles[type];
+        const kcal = et.kcalPerMin * duration;
+        const kj = Math.round(kcal * 4.184);
+        
+        // ---- 串行能量底物消耗 ----
+        // 该运动总体偏好（来自 exerciseProfiles）
+        let prefGly = profile.glycogen, prefFat = profile.fat, prefPro = profile.protein;
+        // 长时间运动会逐步从糖偏向脂肪 → 串行的体现
+        if (duration > 30) {
+            const shift = Math.min((duration - 30) / 60, 1) * 0.3;
+            prefGly = Math.max(0, prefGly - shift);
+            prefFat = prefFat + shift * 0.85;
+            prefPro = prefPro + shift * 0.15;
+        }
+        // 把"偏好比例"换成 kcal
+        let wantGlyKcal = kcal * prefGly;
+        let wantFatKcal = kcal * prefFat;
+        let wantProKcal = kcal * prefPro;
+        
+        // 当前储备（g）
+        const r = this.data.reserves || { glycogen: 500, fat: 12000, protein: 11000 };
+        const curGly = Math.max(0, r.glycogen);
+        const curFat = Math.max(0, r.fat);
+        const curPro = Math.max(0, r.protein);
+        // 转 kcal 容量
+        const capGlyKcal = curGly * 4;
+        const capFatKcal = curFat * 9;
+        const capProKcal = curPro * 4;
+        
+        let burnGlyKcal = 0, burnFatKcal = 0, burnProKcal = 0;
+        // 第一步：糖（试图按 prefGly 比例消耗，但不超过糖储备容量）
+        burnGlyKcal = Math.min(wantGlyKcal, capGlyKcal);
+        let remain = kcal - burnGlyKcal;
+        // 第二步：脂肪（吃掉剩余）
+        burnFatKcal = Math.min(remain, capFatKcal);
+        remain -= burnFatKcal;
+        // 第三步：蛋白质（最后兜底）
+        burnProKcal = Math.min(remain, capProKcal);
+        remain -= burnProKcal;
+        // 极端情况（理论几乎不会发生）：仍有剩余，按蛋白质继续消耗
+        if (remain > 0) burnProKcal += remain;
+        
+        const burnGlycogen = burnGlyKcal / 4;   // g
+        const burnFat = burnFatKcal / 9;        // g
+        const burnProtein = burnProKcal / 4;    // g
+        
+        // ---- 并行：汗液无机盐流失（mg） + B族维生素辅酶消耗 ----
+        const burnMinerals = {
+            sodium:    profile.sodiumLoss * duration,
+            potassium: profile.potassiumLoss * duration,
+            magnesium: profile.magnesiumLoss * duration,
+            calcium:   profile.calciumLoss * duration
+        };
+        // 水（汗液）流失，约 8-15 ml/分钟，按强度调
+        const waterLoss = duration * ({low: 6, medium: 10, high: 15}[et.intensity] || 10);
+        // B族维生素辅酶消耗（百分点），高强度更多
+        const vitConsume = {
+            vb1: duration * 0.05 * (et.intensity === 'high' ? 2 : 1),
+            vb2: duration * 0.04 * (et.intensity === 'high' ? 1.5 : 1),
+            vb6: duration * 0.03,
+            niacin: duration * 0.04
+        };
+        
+        const now = new Date();
+        const time = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        
+        this.data.todayExercises.push({
+            name: et.name, emoji: et.emoji, type: 'exercise', exType: type,
+            duration, kcal, kj,
+            burnGlycogen: Math.round(burnGlycogen * 10) / 10,
+            burnFat: Math.round(burnFat * 10) / 10,
+            burnProtein: Math.round(burnProtein * 10) / 10,
+            burnMinerals, waterLoss, vitConsume,
+            time
+        });
+        
+        // 同步扣储备（严格串行体现：reserves 上 glycogen 永远先归零，再动 fat）
+        this.data.reserves.glycogen = Math.max(0, this.data.reserves.glycogen - burnGlycogen);
+        this.data.reserves.fat = Math.max(0, this.data.reserves.fat - burnFat);
+        this.data.reserves.protein = Math.max(0, this.data.reserves.protein - burnProtein);
+        // 维生素/无机盐储备百分比下调
+        if (this.data.reserves.vitMin) {
+            const vm = this.data.reserves.vitMin;
+            ['sodium','potassium','magnesium','calcium'].forEach(k => {
+                if (vm[k] !== undefined) vm[k] = Math.max(0, vm[k] - duration * 0.15);
+            });
+            ['vb1','vb2','vb6','niacin'].forEach(k => {
+                if (vm[k] !== undefined) vm[k] = Math.max(0, vm[k] - (vitConsume[k] || 0));
+            });
+        }
+        
+        this.save();
+        this.goTo('home');
+    },
+    
+    // ===== 消耗柱状图 =====
+    renderBurnChart() {
+        const exercises = this.data.todayExercises;
+        const burn = this.getTodayBurn();
+        
+        if (exercises.length === 0) {
+            document.getElementById('chart-kj').parentElement.innerHTML = '<div class="flex items-center justify-center h-full text-gray-400 text-sm">暂无运动记录</div>';
+            document.getElementById('chart-organic').parentElement.innerHTML = '<div class="flex items-center justify-center h-full text-gray-400 text-sm">暂无运动记录</div>';
+            document.getElementById('burn-glycogen').textContent = '0 g';
+            document.getElementById('burn-fat').textContent = '0 g';
+            document.getElementById('burn-protein').textContent = '0 g';
+            document.getElementById('bar-glycogen').style.width = '0%';
+            document.getElementById('bar-fat').style.width = '0%';
+            document.getElementById('bar-protein').style.width = '0%';
+            return;
+        }
+        
+        // kJ 柱状图
+        const ctxKj = document.getElementById('chart-kj').getContext('2d');
+        if (this.data.chartKj) this.data.chartKj.destroy();
+        this.data.chartKj = new Chart(ctxKj, {
+            type: 'bar',
+            data: {
+                labels: exercises.map(e => e.name),
+                datasets: [{
+                    label: '消耗能量 (kJ)',
+                    data: exercises.map(e => e.kj),
+                    backgroundColor: exercises.map((_, i) => ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'][i % 8]),
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, grid: { color: '#F3F4F6' } }, x: { grid: { display: false } } }
+            }
+        });
+        
+        // 有机物分解柱状图
+        const ctxOrg = document.getElementById('chart-organic').getContext('2d');
+        if (this.data.chartOrganic) this.data.chartOrganic.destroy();
+        this.data.chartOrganic = new Chart(ctxOrg, {
+            type: 'bar',
+            data: {
+                labels: exercises.map(e => e.name),
+                datasets: [
+                    { label: '糖原 (g)', data: exercises.map(e => e.burnGlycogen), backgroundColor: '#3B82F6', borderRadius: 4 },
+                    { label: '脂肪 (g)', data: exercises.map(e => e.burnFat), backgroundColor: '#F59E0B', borderRadius: 4 },
+                    { label: '蛋白质 (g)', data: exercises.map(e => e.burnProtein), backgroundColor: '#EF4444', borderRadius: 4 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 15 } } },
+                scales: { y: { beginAtZero: true, grid: { color: '#F3F4F6' } }, x: { grid: { display: false } } }
+            }
+        });
+        
+        // 总计进度条
+        const totalOrganic = burn.glycogen + burn.fat + burn.protein;
+        document.getElementById('burn-glycogen').textContent = burn.glycogen.toFixed(1) + ' g';
+        document.getElementById('burn-fat').textContent = burn.fat.toFixed(1) + ' g';
+        document.getElementById('burn-protein').textContent = burn.protein.toFixed(1) + ' g';
+        document.getElementById('bar-glycogen').style.width = totalOrganic > 0 ? (burn.glycogen / totalOrganic * 100) + '%' : '0%';
+        document.getElementById('bar-fat').style.width = totalOrganic > 0 ? (burn.fat / totalOrganic * 100) + '%' : '0%';
+        document.getElementById('bar-protein').style.width = totalOrganic > 0 ? (burn.protein / totalOrganic * 100) + '%' : '0%';
+    },
+    
+    // ===== 相机 =====
+    renderCameraFoods() {
+        const grid = document.getElementById('camera-food-grid');
+        grid.innerHTML = Object.entries(foodDatabase).map(([name, data]) => `
+            <div class="food-item cursor-pointer" onclick="app.selectFood('${name}')" data-food="${name}">
+                <div class="food-emoji">${data.emoji}</div>
+                <div class="food-name">${name}</div>
+            </div>
+        `).join('');
+    },
+    
+    setCameraMode(mode) {
+        this.data.cameraMode = mode;
+        document.getElementById('cam-mode-package').className = mode === 'package' ? 'px-4 py-1.5 rounded-full text-sm font-medium bg-white text-black' : 'px-4 py-1.5 rounded-full text-sm font-medium text-white';
+        document.getElementById('cam-mode-food').className = mode === 'food' ? 'px-4 py-1.5 rounded-full text-sm font-medium bg-white text-black' : 'px-4 py-1.5 rounded-full text-sm font-medium text-white';
+        document.querySelectorAll('.food-item').forEach(el => {
+            const name = el.dataset.food;
+            const data = foodDatabase[name];
+            el.style.display = mode === 'package' ? (data.type === 'packaged' ? 'block' : 'none') : (data.type === 'food' ? 'block' : 'none');
+        });
+        const tipMode = document.getElementById('cam-tip-mode');
+        const tipApi = document.getElementById('cam-tip-api');
+        if (tipMode) tipMode.textContent = mode === 'package' ? '拍包装' : '拍实物';
+        if (tipApi) tipApi.textContent = mode === 'package' ? 'OCR 文字识别' : 'AI 视觉识别 + 营养估算';
+        this.data.selectedFood = null;
+        this.updateCameraPreview();
+    },
+    
+    selectFood(name) {
+        this.data.selectedFood = name;
+        document.querySelectorAll('.food-item').forEach(el => el.classList.toggle('selected', el.dataset.food === name));
+        this.updateCameraPreview();
+    },
+    
+    updateCameraPreview() {
+        const btn = document.getElementById('btn-capture');
+        if (!this.data.selectedFood) {
+            document.getElementById('camera-placeholder').classList.remove('hidden');
+            document.getElementById('camera-selected-preview').classList.add('hidden');
+            btn.disabled = true; btn.classList.add('opacity-50');
+            return;
+        }
+        const data = foodDatabase[this.data.selectedFood];
+        document.getElementById('camera-placeholder').classList.add('hidden');
+        document.getElementById('camera-selected-preview').classList.remove('hidden');
+        document.getElementById('preview-emoji').textContent = data.emoji;
+        document.getElementById('preview-name').textContent = this.data.selectedFood;
+        document.getElementById('preview-type').textContent = data.type === 'packaged' ? '有包装食品（OCR识别）' : '实物（AI识别）';
+        btn.disabled = false; btn.classList.remove('opacity-50');
+    },
+    
+    // 拍摄按钮：根据模式分发到 OCR / AI 识别流程
+    async confirmCapture() {
+        if (!this.data.selectedFood) return;
+        const mode = this.data.cameraMode;
+        const overlay = document.getElementById('scan-overlay');
+        const scanTitle = document.getElementById('scan-title');
+        const scanSub = document.getElementById('scan-sub');
+        overlay.classList.remove('hidden');
+        document.getElementById('btn-capture').disabled = true;
+        if (mode === 'package') {
+            scanTitle.textContent = '正在识别营养成分表...';
+            scanSub.textContent = '调用 OCR API · 提取每100g营养与净含量';
+            try {
+                const ocr = await aiService.recognizePackage(this.data.selectedFood);
+                overlay.classList.add('hidden');
+                document.getElementById('btn-capture').disabled = false;
+                if (!ocr.ok) { alert('识别失败，请改为手动选择'); this.goTo('manual-pick'); this.renderManualPick(''); return; }
+                this.data.ocrResult = ocr;
+                this.renderOcrReview();
+                this.goTo('ocr-review');
+            } catch (e) {
+                overlay.classList.add('hidden');
+                document.getElementById('btn-capture').disabled = false;
+                alert('OCR 识别异常：' + e.message);
+            }
+        } else {
+            scanTitle.textContent = '正在识别食物...';
+            scanSub.textContent = '调用视觉 AI · 估算重量与营养成分';
+            try {
+                const u = this.data.user || {};
+                const ctx = { age: u.age, gender: u.gender, diseases: u.diseases, phases: u.phases };
+                const ai = await aiService.recognizeFood(this.data.selectedFood, ctx);
+                overlay.classList.add('hidden');
+                document.getElementById('btn-capture').disabled = false;
+                if (!ai.ok || ai.fallback) {
+                    alert('AI 识别置信度过低，已切换到手动选择');
+                    this.goTo('manual-pick');
+                    this.renderManualPick('');
+                    return;
+                }
+                this.data.aiResult = ai;
+                this.renderAiReview();
+                this.goTo('ai-review');
+            } catch (e) {
+                overlay.classList.add('hidden');
+                document.getElementById('btn-capture').disabled = false;
+                alert('AI 识别异常：' + e.message);
+            }
+        }
+    },
+
+    // ===== OCR 校对页渲染 =====
+    renderOcrReview() {
+        const ocr = this.data.ocrResult;
+        if (!ocr) return;
+        document.getElementById('ocr-name').value = ocr.productName.value;
+        document.getElementById('ocr-netweight').value = ocr.netWeight.value;
+        const overall = ocr.overallConf;
+        const pill = document.getElementById('ocr-overall-conf');
+        pill.textContent = '总置信 ' + Math.round(overall * 100) + '%';
+        pill.className = 'conf-pill ' + (overall >= 0.85 ? 'conf-high' : overall >= 0.7 ? 'conf-mid' : 'conf-low');
+        document.getElementById('ocr-meta').textContent = `OCR 识别完成 · ${ocr.nutrients.length} 项营养素 · ${new Date().toLocaleTimeString()}`;
+        const list = document.getElementById('ocr-nutrients-list');
+        list.innerHTML = ocr.nutrients.map((n, i) => {
+            const cls = n.conf >= 0.85 ? 'conf-high' : n.conf >= 0.7 ? 'conf-mid' : 'conf-low';
+            return `<div class="field-row">
+                <span class="field-label">${n.name}</span>
+                <input type="number" step="0.01" class="field-input" data-idx="${i}" data-key="${n.key}" value="${n.value}" oninput="app.ocrEditField(${i}, this.value)">
+                <span class="field-unit">${n.unit}</span>
+                <span class="conf-pill ${cls}">${Math.round(n.conf * 100)}%</span>
+            </div>`;
+        }).join('');
+    },
+    ocrEditField(idx, val) {
+        if (!this.data.ocrResult) return;
+        const n = this.data.ocrResult.nutrients[idx];
+        if (n) { n.value = parseFloat(val) || 0; n.conf = 1; } // 用户修改即视为高置信
+    },
+
+    // OCR 校对完成 → 构造 pendingFood，进入摄入确认页（分批选择）
+    ocrConfirmGoConfirm() {
+        const ocr = this.data.ocrResult;
+        if (!ocr) return;
+        const name = document.getElementById('ocr-name').value.trim() || ocr.productName.value;
+        const netWeight = parseFloat(document.getElementById('ocr-netweight').value) || ocr.netWeight.value;
+        const nutrientsPer100g = {};
+        // 默认 0，再用 OCR 识别值覆盖
+        Object.keys(nutrientMeta).forEach(k => nutrientsPer100g[k] = 0);
+        ocr.nutrients.forEach(n => { nutrientsPer100g[n.key] = n.value; });
+        // 如果是已知数据库食物，补全未识别项以提供更完整的营养
+        const dbItem = foodDatabase[ocr.productName.value];
+        if (dbItem) {
+            Object.entries(dbItem.nutrientsPer100g).forEach(([k, v]) => {
+                if (!nutrientsPer100g[k]) nutrientsPer100g[k] = v;
+            });
+        }
+        this.data.pendingFood = {
+            name, emoji: (dbItem && dbItem.emoji) || '📦', type: 'packaged',
+            netWeight, nutrientsPer100g, source: 'ocr', confidence: ocr.overallConf
+        };
+        this.goToConfirmPending();
+    },
+
+    // ===== AI 校对页渲染 =====
+    renderAiReview() {
+        const ai = this.data.aiResult;
+        if (!ai) return;
+        const p = ai.primary;
+        document.getElementById('ai-emoji').textContent = p.emoji;
+        document.getElementById('ai-name').textContent = p.name;
+        document.getElementById('ai-desc').textContent = `预估重量 ${p.weight}g · 已结合个人档案`;
+        document.getElementById('ai-weight').value = p.weight;
+        const overall = ai.overallConf;
+        const pill = document.getElementById('ai-overall-conf');
+        pill.textContent = '置信 ' + Math.round(overall * 100) + '%';
+        pill.className = 'conf-pill ' + (overall >= 0.85 ? 'conf-high' : overall >= 0.6 ? 'conf-mid' : 'conf-low');
+        document.getElementById('ai-meta').textContent = `视觉 AI 已完成 · ${ai.candidates.length} 个候选 · ${new Date().toLocaleTimeString()}`;
+        // 候选
+        document.getElementById('ai-candidates').innerHTML = ai.candidates.map((c, i) => `
+            <span class="cand-chip ${i === 0 ? 'selected' : ''}" data-name="${c.name}" onclick="app.aiPickCandidate('${c.name}')">
+                <span>${c.emoji}</span><span>${c.name}</span>
+                <span class="cand-conf">${Math.round(c.conf * 100)}%</span>
+            </span>
+        `).join('');
+        this.renderAiNutrientList();
+    },
+    renderAiNutrientList() {
+        const ai = this.data.aiResult;
+        const list = document.getElementById('ai-nutrients-list');
+        const np = ai.primary.nutrientsPer100g;
+        const keys = ['energy','protein','fat','carbs','fiber','sodium','calcium','iron','vc','va'];
+        list.innerHTML = keys.filter(k => np[k] !== undefined).map(k => {
+            const meta = nutrientMeta[k];
+            return `<div class="flex justify-between py-1 border-b border-gray-100 last:border-0"><span class="text-gray-600">${meta.name}</span><span class="font-medium">${np[k]} ${meta.unit}</span></div>`;
+        }).join('');
+    },
+    aiPickCandidate(name) {
+        const ai = this.data.aiResult;
+        if (!ai) return;
+        const dbItem = foodDatabase[name];
+        if (!dbItem) return;
+        const oldP = ai.primary;
+        // 切换主结果：保持当前重量，营养重新生成（带轻微扰动）
+        const nutrientsPer100g = {};
+        Object.entries(dbItem.nutrientsPer100g).forEach(([k, v]) => { nutrientsPer100g[k] = aiService._noise(v, 0.06); });
+        ai.primary = { name, emoji: dbItem.emoji, weight: oldP.weight, conf: (ai.candidates.find(c => c.name === name) || {}).conf || oldP.conf, nutrientsPer100g };
+        document.querySelectorAll('#ai-candidates .cand-chip').forEach(el => el.classList.toggle('selected', el.dataset.name === name));
+        document.getElementById('ai-emoji').textContent = dbItem.emoji;
+        document.getElementById('ai-name').textContent = name;
+        this.renderAiNutrientList();
+    },
+    aiAdjustWeight(factor) {
+        const ai = this.data.aiResult;
+        if (!ai) return;
+        const base = parseFloat(document.getElementById('ai-weight').value) || ai.primary.weight;
+        const newW = Math.max(1, Math.round(base * factor));
+        document.getElementById('ai-weight').value = newW;
+        ai.primary.weight = newW;
+    },
+    aiConfirmGoConfirm() {
+        const ai = this.data.aiResult;
+        if (!ai) return;
+        const weight = parseFloat(document.getElementById('ai-weight').value) || ai.primary.weight;
+        ai.primary.weight = weight;
+        const dbItem = foodDatabase[ai.primary.name];
+        // 补全 AI 未输出的细项
+        const nutrientsPer100g = {};
+        Object.keys(nutrientMeta).forEach(k => nutrientsPer100g[k] = 0);
+        Object.entries(ai.primary.nutrientsPer100g).forEach(([k, v]) => { nutrientsPer100g[k] = v; });
+        if (dbItem) {
+            Object.entries(dbItem.nutrientsPer100g).forEach(([k, v]) => {
+                if (!nutrientsPer100g[k]) nutrientsPer100g[k] = v;
+            });
+        }
+        this.data.pendingFood = {
+            name: ai.primary.name, emoji: ai.primary.emoji, type: 'food',
+            netWeight: weight, nutrientsPer100g, source: 'vision_ai', confidence: ai.overallConf
+        };
+        this.goToConfirmPending();
+    },
+
+    // ===== 手动搜索回退 =====
+    ocrManualFallback() {
+        this.goTo('manual-pick');
+        this.renderManualPick('');
+    },
+    renderManualPick(filter = '') {
+        const list = document.getElementById('manual-pick-list');
+        if (!list) return;
+        const items = Object.entries(foodDatabase).filter(([name]) => !filter || name.includes(filter));
+        list.innerHTML = items.map(([name, d]) => `
+            <div class="food-item cursor-pointer" onclick="app.manualPickFood('${name}')">
+                <div class="food-emoji">${d.emoji}</div>
+                <div class="food-name">${name}</div>
+                <div class="text-xs text-gray-400 mt-1">${d.type === 'packaged' ? '有包装' : '实物'}</div>
+            </div>
+        `).join('') || '<div class="col-span-2 text-center text-gray-400 py-8">未找到匹配食物</div>';
+    },
+    manualPickFood(name) {
+        const d = foodDatabase[name];
+        if (!d) return;
+        this.data.pendingFood = {
+            name, emoji: d.emoji, type: d.type,
+            netWeight: d.netWeight, nutrientsPer100g: { ...d.nutrientsPer100g },
+            source: 'manual', confidence: 1
+        };
+        this.goToConfirmPending();
+    },
+
+    // ===== 把 pendingFood 推入摄入确认页 =====
+    goToConfirmPending() {
+        const pf = this.data.pendingFood;
+        if (!pf) return;
+        this.data.selectedFood = pf.name; // 兼容旧 saveRecord
+        document.getElementById('confirm-emoji').textContent = pf.emoji;
+        document.getElementById('confirm-name').textContent = pf.name;
+        const srcLabel = pf.source === 'ocr' ? `OCR 识别 · 置信 ${Math.round(pf.confidence*100)}%` : pf.source === 'vision_ai' ? `视觉 AI 识别 · 置信 ${Math.round(pf.confidence*100)}%` : '手动选择';
+        document.getElementById('confirm-net').textContent = `${pf.type === 'packaged' ? '净含量' : '预估重量'}：${pf.netWeight}g · ${srcLabel}`;
+        document.getElementById('confirm-total-weight').textContent = `${pf.type === 'packaged' ? '净含量' : '预估重量'}：${pf.netWeight}g`;
+        const nutContainer = document.getElementById('confirm-nutrients');
+        nutContainer.innerHTML = Object.entries(pf.nutrientsPer100g).filter(([_, v]) => v).map(([k, v]) => {
+            const meta = nutrientMeta[k]; if (!meta) return '';
+            return `<div class="flex justify-between text-sm py-1"><span class="text-gray-600">${meta.name}</span><span class="font-medium">${v} ${meta.unit}</span></div>`;
+        }).join('');
+        this.data.batchEnabled = false;
+        this.data.batchRatio = 1;
+        this.data.customGrams = null;
+        document.getElementById('toggle-batch').classList.remove('on');
+        document.getElementById('batch-options').classList.add('hidden');
+        this.updateFinalGrams();
+        this.goTo('confirm');
+    },
+    
+    toggleBatch() {
+        this.data.batchEnabled = !this.data.batchEnabled;
+        document.getElementById('toggle-batch').classList.toggle('on', this.data.batchEnabled);
+        document.getElementById('batch-options').classList.toggle('hidden', !this.data.batchEnabled);
+        if (!this.data.batchEnabled) {
+            this.data.batchRatio = 1; this.data.customGrams = null;
+            document.getElementById('input-custom-grams').value = '';
+            document.querySelectorAll('.batch-btn').forEach(b => {
+                b.className = b.dataset.ratio == 1 ? 'batch-btn flex-1 py-2 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-700 text-sm font-medium' : 'batch-btn flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium';
+            });
+        }
+        this.updateFinalGrams();
+    },
+    
+    setBatchRatio(ratio) {
+        this.data.batchRatio = ratio; this.data.customGrams = null;
+        document.getElementById('input-custom-grams').value = '';
+        document.querySelectorAll('.batch-btn').forEach(b => {
+            const br = parseFloat(b.dataset.ratio);
+            b.className = br === ratio ? 'batch-btn flex-1 py-2 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-700 text-sm font-medium' : 'batch-btn flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium';
+        });
+        this.updateFinalGrams();
+    },
+    
+    setCustomGrams(val) {
+        if (val) { this.data.customGrams = parseFloat(val); this.data.batchRatio = 0;
+            document.querySelectorAll('.batch-btn').forEach(b => { b.className = 'batch-btn flex-1 py-2 rounded-lg border-2 border-gray-200 text-gray-600 text-sm font-medium'; });
+        } else { this.data.customGrams = null; this.data.batchRatio = 1;
+            document.querySelector('.batch-btn[data-ratio="1"]').className = 'batch-btn flex-1 py-2 rounded-lg border-2 border-emerald-500 bg-emerald-50 text-emerald-700 text-sm font-medium';
+        }
+        this.updateFinalGrams();
+    },
+    
+    updateFinalGrams() {
+        const data = this.data.pendingFood || foodDatabase[this.data.selectedFood];
+        if (!data) return;
+        let grams = data.netWeight;
+        if (this.data.batchEnabled) {
+            if (this.data.customGrams) grams = this.data.customGrams;
+            else grams = Math.round(data.netWeight * this.data.batchRatio);
+        }
+        document.getElementById('confirm-final-grams').textContent = grams + 'g';
+    },
+    
+    saveRecord() {
+        const data = this.data.pendingFood || foodDatabase[this.data.selectedFood];
+        if (!data) return;
+        let grams = data.netWeight;
+        if (this.data.batchEnabled) {
+            if (this.data.customGrams) grams = this.data.customGrams;
+            else grams = Math.round(data.netWeight * this.data.batchRatio);
+        }
+        const ratio = grams / 100;
+        const nutrients = {};
+        Object.entries(data.nutrientsPer100g).forEach(([k, v]) => { nutrients[k] = Math.round(v * ratio * 100) / 100; });
+        const now = new Date();
+        const time = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+        this.data.todayRecords.push({ name: data.name || this.data.selectedFood, emoji: data.emoji, grams, nutrients, time, type: data.type, source: data.source, confidence: data.confidence });
+        this.data.pendingFood = null;
+        // 增加体内储备（能量物质 + 维生素/无机盐充足度）
+        // 文献：碳水→糖原合成转化率约 15-20%，脂肪→体脂储存效率约 90%，蛋白质→组织合成约 10-15%
+        if (this.data.reserves) {
+            this.data.reserves.glycogen = Math.min(this.data.reserves.glycogenMax, this.data.reserves.glycogen + (nutrients.carbs || 0) * 0.18);
+            this.data.reserves.fat = Math.min(this.data.reserves.fatMax, this.data.reserves.fat + (nutrients.fat || 0) * 0.9);
+            this.data.reserves.protein = Math.min(this.data.reserves.proteinMax, this.data.reserves.protein + (nutrients.protein || 0) * 0.12);
+            // 维生素/无机盐充足度（每达到目标 10% 提升相应储备 1.5 个百分点）
+            const g = this.data.goals || {};
+            const vm = this.data.reserves.vitMin || {};
+            Object.keys(vm).forEach(k => {
+                if (g[k]) {
+                    const inc = (nutrients[k] || 0) / g[k] * 15; // 摄入达全日目标=+15
+                    vm[k] = Math.min(120, vm[k] + inc);
+                }
+            });
+        }
+        this.generateAdvice();
+        this.save();
+        this.goTo('home');
+    },
+    
+    generateAdvice() {
+        const intake = this.getTodayIntake();
+        const goals = this.data.goals;
+        const user = this.data.user;
+        const burn = this.getTodayBurn();
+        let sections = [];
+        const kcalPct = Math.round(intake.energy / goals.energy * 100);
+        sections.push(`📊 <strong>当前摄入概况</strong><br>今日已摄入约 ${Math.round(intake.energy)} kcal，运动消耗 ${Math.round(burn.kcal)} kcal，净摄入 ${Math.round(intake.energy - burn.kcal)} kcal。`);
+        let concerns = [];
+        if (intake.sodium > goals.sodium) concerns.push(`钠摄入已超标（${Math.round(intake.sodium)}/${goals.sodium}mg）`);
+        if (intake.fat > goals.fat) concerns.push(`脂肪摄入已超标（${Math.round(intake.fat)}/${goals.fat}g）`);
+        if (intake.protein < goals.protein * 0.3) concerns.push(`蛋白质摄入不足（${Math.round(intake.protein)}/${goals.protein}g）`);
+        if (intake.vc < goals.vc * 0.3) concerns.push('维生素C摄入不足');
+        if (intake.calcium < goals.calcium * 0.3) concerns.push('钙摄入不足');
+        if (burn.kcal > intake.energy * 0.8) concerns.push('今日运动消耗较大，注意补充能量和蛋白质');
+        if (concerns.length === 0) concerns.push('目前各项营养摄入较为均衡，请继续保持！');
+        sections.push(`⚠️ <strong>需关注项</strong><br>${concerns.join('；')}`);
+        let suggestions = [];
+        if (intake.protein < goals.protein * 0.5) suggestions.push('鸡胸肉、鱼类、豆腐或鸡蛋');
+        if (intake.vc < goals.vc * 0.5) suggestions.push('西兰花、猕猴桃、橙子');
+        if (intake.calcium < goals.calcium * 0.5) suggestions.push('牛奶、酸奶');
+        if (intake.fiber < goals.fiber * 0.5) suggestions.push('燕麦、红薯或绿叶蔬菜');
+        if (burn.kcal > intake.energy * 0.5) suggestions.push('香蕉、全麦面包等快速补充能量');
+        if (suggestions.length === 0) suggestions.push('清淡蔬菜沙拉或低糖水果');
+        sections.push(`🍽️ <strong>下一餐建议</strong><br>建议优先补充：${suggestions.join('、')}。`);
+        let tips = [];
+        if (user.diseases.includes('糖尿病')) tips.push('糖尿病患者建议少食多餐');
+        if (user.diseases.includes('高血压')) tips.push('高血压患者烹饪时建议限盐');
+        if (user.exerciseDays >= 3) tips.push('运动日请注意补充优质蛋白');
+        tips.push('饮水建议少量多次');
+        sections.push(`💡 <strong>健康小贴士</strong><br>${tips.join('；')}`);
+        const now = new Date();
+        this.data.aiSuggestions.unshift({ time: `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`, sections, meal: this.getMealName() });
+        if (this.data.aiSuggestions.length > 10) this.data.aiSuggestions.pop();
+    },
+    
+    getMealName() {
+        const h = new Date().getHours();
+        if (h < 10) return '早餐'; if (h < 14) return '午餐'; if (h < 17) return '下午茶'; return '晚餐';
+    },
+    
+    // ===== 摄入详情 =====
+    renderDetail() {
+        const intake = this.getTodayIntake();
+        const goals = this.data.goals;
+        document.getElementById('detail-kcal').textContent = Math.round(intake.energy);
+        document.getElementById('detail-kcal-goal').textContent = goals.energy;
+        const pct = Math.min(intake.energy / goals.energy, 1);
+        document.getElementById('detail-ring').style.strokeDashoffset = 314 - (314 * pct);
+        const container = document.getElementById('detail-list');
+        const categories = ['能量', '宏量营养素', '维生素', '无机盐', '水'];
+        container.innerHTML = categories.map(cat => {
+            const items = Object.entries(nutrientMeta).filter(([k, v]) => v.category === cat).sort((a, b) => a[1].order - b[1].order);
+            return `<div class="card"><h3 class="font-bold text-gray-900 mb-4 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-emerald-500"></span>${cat}</h3><div class="space-y-4">${items.map(([key, meta]) => {
+                const val = intake[key] || 0; const goal = goals[key] || 1; const p = Math.min(val / goal, 1.5); const pct = Math.round(p * 100);
+                let colorClass = 'progress-blue'; if (pct > 100) colorClass = 'progress-red'; else if (pct >= 80) colorClass = 'progress-orange'; else if (pct >= 50) colorClass = 'progress-green';
+                return `<div><div class="flex justify-between text-sm mb-1.5"><span class="text-gray-700">${meta.name}</span><span class="font-medium text-gray-900">${Math.round(val*10)/10} / ${goal} ${meta.unit}</span></div><div class="progress-track"><div class="progress-fill ${colorClass}" style="width: ${Math.min(pct, 100)}%"></div></div><div class="text-right text-xs text-gray-400 mt-1">${pct}%</div></div>`;
+            }).join('')}</div></div>`;
+        }).join('');
+    },
+    
+    // ===== 建议 =====
+    renderAdvice() {
+        const container = document.getElementById('advice-list');
+        if (this.data.aiSuggestions.length === 0) {
+            container.innerHTML = `<div class="text-center text-gray-400 py-20"><i class="fas fa-lightbulb text-4xl mb-4 opacity-30"></i><p class="text-sm">记录饮食后将在此生成 AI 建议</p></div>`;
+            return;
+        }
+        container.innerHTML = this.data.aiSuggestions.map((s, i) => `<div class="advice-card" style="animation: fadeIn 0.4s ease ${i*0.1}s both;"><div class="flex items-center justify-between mb-3"><span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full">${s.meal}建议</span><span class="text-xs text-gray-400">${s.time}</span></div><div class="space-y-3">${s.sections.map(sec => `<div class="text-sm text-gray-700 leading-relaxed">${sec}</div>`).join('')}</div></div>`).join('');
+    },
+    
+    // ===== 健康综合评分 =====
+    // 算法：100 − Σ(BMI/血压/血糖/营养达标率/储备低水位)×权重，截断到 0~100
+    // 参考：Lloyd-Jones DM et al. Defining and setting national goals for cardiovascular health (Circulation 2010)
+    computeHealthScore() {
+        const u = this.data.user;
+        if (!u) return { score: 0, bmi: 0, bmiTag: '--' };
+        const bmi = u.weight / Math.pow(u.height / 100, 2);
+        let score = 100;
+        // BMI 偏差
+        let bmiTag = '正常';
+        if (bmi < 18.5) { score -= (18.5 - bmi) * 4; bmiTag = '偏瘦'; }
+        else if (bmi < 24) { /* 正常 */ }
+        else if (bmi < 28) { score -= (bmi - 24) * 3; bmiTag = '超重'; }
+        else { score -= 12 + (bmi - 28) * 4; bmiTag = '肥胖'; }
+        // 血压
+        if (u.bpHigh >= 140 || u.bpLow >= 90) score -= 15;
+        else if (u.bpHigh >= 130 || u.bpLow >= 85) score -= 6;
+        else if (u.bpHigh < 90) score -= 4;
+        // 血糖
+        if (u.bloodSugar >= 7) score -= 15;
+        else if (u.bloodSugar >= 6.1) score -= 7;
+        else if (u.bloodSugar < 3.9) score -= 6;
+        // 营养达标率
+        const intake = this.getTodayIntake();
+        const g = this.data.goals || {};
+        let deficits = 0;
+        ['protein','fiber','vc','calcium','iron'].forEach(k => {
+            if (g[k] && intake[k] < g[k] * 0.5) deficits++;
+        });
+        score -= deficits * 3;
+        // 储备低水位
+        const r = this.data.reserves;
+        if (r) {
+            const vm = r.vitMin || {};
+            const lowVit = Object.values(vm).filter(v => v < 40).length;
+            score -= lowVit * 1.5;
+            if (r.glycogen < r.glycogenMax * 0.2) score -= 4;
+        }
+        // 已确诊缺乏症（每个 -3）
+        score -= (u.deficiencies || []).length * 3;
+        // 特殊时期略加权（不扣分，给提示）
+        score = Math.max(0, Math.min(100, Math.round(score)));
+        return { score, bmi: bmi.toFixed(1), bmiTag };
+    },
+
+    /**
+     * 缺乏症发病概率推算
+     * 模型：P = sigmoid(基线 + 摄入不足项 + 储备不足项 + 既往加权 − 当前补充加权)
+     * 输出 0~95% 概率，并附食物推荐
+     * 参考：WHO Vitamin and mineral requirements (2004)；Allen LH (Am J Clin Nutr 2009)
+     */
+    computeDeficiencyRisks() {
+        const intake = this.getTodayIntake();
+        const g = this.data.goals || {};
+        const r = this.data.reserves || { vitMin: {} };
+        const vm = r.vitMin || {};
+        const userDef = (this.data.user && this.data.user.deficiencies) || [];
+        const phases = (this.data.user && this.data.user.phases) || [];
+        const diseases = (this.data.user && this.data.user.diseases) || [];
+
+        const sigmoid = x => 1 / (1 + Math.exp(-x));
+        const list = deficiencyDatabase.map(def => {
+            const k = def.nutrient;
+            const goal = g[k] || 1;
+            const got = intake[k] || 0;
+            const ratio = got / goal; // 摄入达标率
+            const stock = vm[k] !== undefined ? vm[k] : 70; // 储备充足度 %
+            // 基础 logit：摄入越低、储备越低，logit 越高
+            let z = -2.0;
+            z += (1 - Math.min(ratio, 1)) * 3.0; // 摄入<目标
+            z += (1 - Math.min(stock / 100, 1)) * 2.5; // 储备低
+            if (userDef.includes(def.id)) z += 2.5; // 已确诊
+            if (def.id === 'fe-def' && (phases.includes('经期') || phases.includes('孕中期') || phases.includes('孕晚期'))) z += 1.2;
+            if (def.id === 'folate-def' && phases.some(p => p.startsWith('孕'))) z += 1.5;
+            if (def.id === 'ca-def' && (phases.includes('哺乳期') || phases.includes('老年期'))) z += 1.0;
+            if (def.id === 'vd-def' && phases.includes('老年期')) z += 0.8;
+            if (def.id === 'vb12-def' && phases.includes('老年期')) z += 1.0;
+            if (def.id === 'protein-def' && (diseases.includes('肾病'))) z += 0.5;
+            if (ratio > 1.2 && stock > 80) z -= 1.0; // 当前在大量补充
+            const p = Math.min(0.95, sigmoid(z));
+            return { id: def.id, name: def.name, prob: p, foods: def.foods, symptoms: def.symptoms, refKey: def.refKey, intakeRatio: ratio, stock };
+        });
+        list.sort((a, b) => b.prob - a.prob);
+        return list;
+    },
+
+    // ===== 缺乏症风险页 =====
+    renderRiskPage() {
+        const risks = this.computeDeficiencyRisks();
+        const top = risks.slice(0, 12);
+        // 图表
+        const ctx = document.getElementById('chart-risk').getContext('2d');
+        if (this.data.chartRisk) this.data.chartRisk.destroy();
+        this.data.chartRisk = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: top.map(r => r.name.length > 14 ? r.name.slice(0,13) + '…' : r.name),
+                datasets: [{
+                    label: '发病概率 (%)',
+                    data: top.map(r => +(r.prob * 100).toFixed(1)),
+                    backgroundColor: top.map(r => r.prob > 0.5 ? '#EF4444' : r.prob > 0.25 ? '#F59E0B' : '#10B981'),
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true, max: 100, grid: { color: '#F3F4F6' } }, y: { grid: { display: false }, ticks: { font: { size: 11 } } } }
+            }
+        });
+        // 明细
+        document.getElementById('risk-list').innerHTML = risks.map(r => {
+            const pct = (r.prob * 100).toFixed(1);
+            const cls = r.prob > 0.5 ? 'risk-high' : r.prob > 0.25 ? 'risk-mid' : 'risk-low';
+            return `<div class="risk-row">
+                <div class="text-gray-700 text-xs">${r.name.length > 12 ? r.name.slice(0,11) + '…' : r.name}</div>
+                <div class="risk-bar-track"><div class="risk-bar-fill ${cls}" style="width:${pct}%"></div></div>
+                <div class="text-right font-bold text-gray-900">${pct}%</div>
+            </div>`;
+        }).join('');
+        // 推荐食物（top 6 风险的食物去重）
+        const recMap = {};
+        risks.slice(0, 6).forEach(r => {
+            r.foods.forEach(f => {
+                if (!recMap[f]) recMap[f] = [];
+                recMap[f].push(r.name.split('（')[0]);
+            });
+        });
+        const recArr = Object.entries(recMap).sort((a, b) => b[1].length - a[1].length).slice(0, 8);
+        document.getElementById('risk-food-rec').innerHTML = recArr.map(([food, defs]) => `
+            <div class="flex items-center gap-3 bg-emerald-50 rounded-xl p-3">
+                <div class="w-9 h-9 bg-white rounded-lg flex items-center justify-center text-lg">🥗</div>
+                <div class="flex-1">
+                    <div class="font-medium text-gray-900">${food}</div>
+                    <div class="text-xs text-gray-500">可帮助：${defs.slice(0, 3).join('、')}</div>
+                </div>
+                <div class="text-xs text-emerald-600 font-bold">覆盖${defs.length}项</div>
+            </div>
+        `).join('') || '<div class="text-sm text-gray-400 text-center py-4">暂无明显需补充项</div>';
+    },
+
+    // ===== 储量条形图 =====
+    renderStockChart() {
+        if (!this.data.reserves) return;
+        const r = this.data.reserves;
+        // 能量物质 g
+        const ctx1 = document.getElementById('chart-energy-stock').getContext('2d');
+        if (this.data.chartEnergyStock) this.data.chartEnergyStock.destroy();
+        this.data.chartEnergyStock = new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: ['糖原', '脂肪', '蛋白质'],
+                datasets: [
+                    { label: '当前 (g)', data: [Math.round(r.glycogen), Math.round(r.fat), Math.round(r.protein)], backgroundColor: ['#3B82F6','#F59E0B','#EF4444'], borderRadius: 6 },
+                    { label: '上限 (g)', data: [r.glycogenMax, r.fatMax, r.proteinMax], backgroundColor: ['#DBEAFE','#FEF3C7','#FEE2E2'], borderRadius: 6 }
+                ]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+        });
+        const vm = r.vitMin || {};
+        const vitKeys = ['va','vd','ve','vb1','vb2','vb6','vb12','vc','niacin','folate','pantothenic'];
+        const minKeys = ['calcium','phosphorus','potassium','sodium','magnesium','iron','zinc','iodine','selenium','copper'];
+        const colorFor = v => v < 40 ? '#EF4444' : v < 70 ? '#F59E0B' : '#10B981';
+
+        const ctx2 = document.getElementById('chart-vit-stock').getContext('2d');
+        if (this.data.chartVitStock) this.data.chartVitStock.destroy();
+        this.data.chartVitStock = new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: vitKeys.map(k => nutrientMeta[k].name),
+                datasets: [{ label: '充足度 %', data: vitKeys.map(k => Math.round(vm[k] || 0)), backgroundColor: vitKeys.map(k => colorFor(vm[k] || 0)), borderRadius: 4 }]
+            },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, max: 120 } } }
+        });
+        const ctx3 = document.getElementById('chart-min-stock').getContext('2d');
+        if (this.data.chartMinStock) this.data.chartMinStock.destroy();
+        this.data.chartMinStock = new Chart(ctx3, {
+            type: 'bar',
+            data: {
+                labels: minKeys.map(k => nutrientMeta[k].name),
+                datasets: [{ label: '充足度 %', data: minKeys.map(k => Math.round(vm[k] || 0)), backgroundColor: minKeys.map(k => colorFor(vm[k] || 0)), borderRadius: 4 }]
+            },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true, max: 120 } } }
+        });
+    },
+
+    // ===== 模拟体检报告 =====
+    renderReport() {
+        const u = this.data.user;
+        if (!u) return;
+        const { score, bmi, bmiTag } = this.computeHealthScore();
+        const intake = this.getTodayIntake();
+        const burn = this.getTodayBurn();
+        const g = this.data.goals || {};
+        const r = this.data.reserves || {};
+        const vm = r.vitMin || {};
+
+        const bpStatus = (u.bpHigh >= 140 || u.bpLow >= 90) ? ['高血压', 'badge-danger'] : (u.bpHigh >= 130 || u.bpLow >= 85) ? ['偏高', 'badge-warn'] : ['正常', 'badge-normal'];
+        const sugarStatus = u.bloodSugar >= 7 ? ['偏高', 'badge-danger'] : u.bloodSugar >= 6.1 ? ['空腹血糖受损', 'badge-warn'] : u.bloodSugar < 3.9 ? ['偏低', 'badge-warn'] : ['正常', 'badge-normal'];
+        const bmiBadge = bmiTag === '正常' ? 'badge-normal' : bmiTag === '偏瘦' || bmiTag === '超重' ? 'badge-warn' : 'badge-danger';
+        const phaseStr = (u.phases || []).join('、') || '无';
+
+        document.getElementById('report-basic').innerHTML = `
+            <div class="report-row"><span class="text-gray-500">姓名</span><span class="report-value">${u.name}</span></div>
+            <div class="report-row"><span class="text-gray-500">性别 / 年龄</span><span class="report-value">${u.gender==='male'?'男':'女'} · ${u.age}岁</span></div>
+            <div class="report-row"><span class="text-gray-500">身高 / 体重</span><span class="report-value">${u.height} cm · ${u.weight} kg</span></div>
+            <div class="report-row"><span class="text-gray-500">特殊生理时期</span><span class="report-value">${phaseStr}</span></div>
+            <div class="report-row"><span class="text-gray-500">健康综合评分</span><span class="report-value text-emerald-600 text-lg">${score} / 100</span></div>
+        `;
+        document.getElementById('report-body').innerHTML = `
+            <div class="report-row"><span class="text-gray-500">BMI</span><span><span class="report-value">${bmi} kg/m²</span> <span class="badge ${bmiBadge}">${bmiTag}</span></span></div>
+            <div class="report-row"><span class="text-gray-500">血压</span><span><span class="report-value">${u.bpHigh}/${u.bpLow} mmHg</span> <span class="badge ${bpStatus[1]}">${bpStatus[0]}</span></span></div>
+            <div class="report-row"><span class="text-gray-500">空腹血糖</span><span><span class="report-value">${u.bloodSugar} mmol/L</span> <span class="badge ${sugarStatus[1]}">${sugarStatus[0]}</span></span></div>
+            <div class="report-row"><span class="text-gray-500">视力 / 牙齿</span><span class="report-value">${u.vision} / ${u.teeth}</span></div>
+        `;
+        const netKcal = Math.round(intake.energy - burn.kcal);
+        document.getElementById('report-energy').innerHTML = `
+            <div class="report-row"><span class="text-gray-500">今日摄入能量</span><span class="report-value">${Math.round(intake.energy)} kcal</span></div>
+            <div class="report-row"><span class="text-gray-500">今日运动消耗</span><span class="report-value">${Math.round(burn.kcal)} kcal</span></div>
+            <div class="report-row"><span class="text-gray-500">净摄入</span><span class="report-value ${netKcal>0?'text-emerald-600':'text-orange-500'}">${netKcal} kcal</span></div>
+            <div class="report-row"><span class="text-gray-500">糖原储备</span><span class="report-value">${Math.round(r.glycogen||0)} / ${r.glycogenMax||0} g (${Math.round((r.glycogen||0)/(r.glycogenMax||1)*100)}%)</span></div>
+            <div class="report-row"><span class="text-gray-500">脂肪储备</span><span class="report-value">${((r.fat||0)/1000).toFixed(2)} kg</span></div>
+            <div class="report-row"><span class="text-gray-500">蛋白质池</span><span class="report-value">${((r.protein||0)/1000).toFixed(2)} kg</span></div>
+        `;
+        // 营养素：仅展示明显异常项
+        const lowItems = [];
+        Object.keys(nutrientMeta).forEach(k => {
+            if (k === 'energy' || !g[k]) return;
+            const ratio = (intake[k] || 0) / g[k];
+            const stock = vm[k];
+            if (ratio < 0.5 || (stock !== undefined && stock < 50)) {
+                lowItems.push({ key: k, name: nutrientMeta[k].name, ratio, stock });
+            }
+        });
+        document.getElementById('report-nutrient').innerHTML = lowItems.length ? lowItems.slice(0, 10).map(it => `
+            <div class="report-row"><span class="text-gray-500">${it.name}</span><span><span class="report-value">摄入${Math.round(it.ratio*100)}% · 储备${it.stock!==undefined?Math.round(it.stock)+'%':'--'}</span> <span class="badge badge-warn">偏低</span></span></div>
+        `).join('') : '<p class="text-sm text-emerald-600">各营养素水平良好</p>';
+        // 风险
+        const risks = this.computeDeficiencyRisks().filter(r => r.prob > 0.3).slice(0, 6);
+        document.getElementById('report-risk').innerHTML = risks.length ? risks.map(r => `
+            <div class="report-row"><span class="text-gray-700">${r.name}</span><span><span class="report-value">${(r.prob*100).toFixed(0)}%</span> <span class="badge ${r.prob>0.5?'badge-danger':'badge-warn'}">${r.prob>0.5?'高风险':'中风险'}</span></span></div>
+        `).join('') : '<p class="text-sm text-emerald-600">未见明显缺乏症风险</p>';
+        // 综合医嘱
+        let comment = `综合评分 ${score}/100。`;
+        if (score >= 85) comment += '整体状态优秀，请保持当前饮食与作息。';
+        else if (score >= 70) comment += '整体状态良好，建议针对偏低营养素适度补充。';
+        else if (score >= 60) comment += '整体状态一般，建议关注下列指标并调整饮食结构。';
+        else comment += '建议尽快调整饮食与作息，并咨询专业医师。';
+        if (risks.length) comment += ' 当前需要重点关注：' + risks.slice(0,3).map(r => r.name.split('（')[0]).join('、') + '。';
+        if (lowItems.length) comment += ' 营养素偏低项：' + lowItems.slice(0,4).map(i=>i.name).join('、') + '。';
+        document.getElementById('report-comment').textContent = comment;
+        const now = new Date();
+        document.getElementById('report-time').textContent = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+    },
+
+    // ===== 文献页 =====
+    renderReferences() {
+        const order = ['health_score','bmr_mifflin','tdee_pal','rda_dri','special_phase','fuel_substrate','rer_substrate','glycogen_stores','fat_stores','protein_pool','sweat_loss','deficiency_prob'];
+        const restKeys = Object.keys(referencesDatabase).filter(k => !order.includes(k));
+        const all = [...order, ...restKeys];
+        document.getElementById('references-list').innerHTML = all.map(k => {
+            const r = referencesDatabase[k];
+            if (!r) return '';
+            const tags = (r.tags || []).map(t => `<span class="ref-tag">${t}</span>`).join('');
+            return `<div class="ref-item">
+                <h4>${r.title}</h4>
+                <div>${tags}</div>
+                <p style="margin-top:6px;">${r.desc}</p>
+                ${r.algo ? `<p style="margin-top:6px;"><span class="font-semibold text-emerald-700">本应用算法：</span>${r.algo}</p>` : ''}
+                <p class="ref-source"><i class="fas fa-quote-right mr-1"></i>${r.source}</p>
+            </div>`;
+        }).join('');
+    },
+
+    // ===== 我的 =====
+    renderProfile() {
+        if (!this.data.user) return;
+        const u = this.data.user;
+        document.getElementById('profile-name').textContent = u.name;
+        const gender = u.gender === 'male' ? '男' : '女';
+        document.getElementById('profile-info').textContent = `${u.age}岁 · ${gender} · ${u.weight}kg`;
+    },
+    
+    backFromManual() { this.goTo(this.data.manualReturnTo); },
+    
+    resetData() {
+        if (confirm('确定要重置所有数据吗？此操作不可恢复。')) {
+            localStorage.removeItem('shike_data_v2');
+            location.reload();
+        }
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => app.init());
+</script>
+
+</body>
+</html>
