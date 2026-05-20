@@ -97,6 +97,35 @@
         .ref-tag { display: inline-block; background: #EFF6FF; color: #1D4ED8; font-size: 11px; padding: 2px 8px; border-radius: 6px; margin-right: 4px; margin-top: 4px; }
         /* 缺乏症条形概率 */
         .risk-row { display: grid; grid-template-columns: 90px 1fr 50px; align-items: center; gap: 8px; padding: 8px 0; font-size: 13px; }
+        /* ===== 时间轴 ===== */
+        .tl-hour-tick { position: absolute; left: 0; right: 0; border-top: 1px solid #F3F4F6; pointer-events: none; }
+        .tl-hour-tick.major { border-color: #E5E7EB; }
+        .tl-hour-label { position: absolute; font-size: 10px; color: #9CA3AF; line-height: 1; white-space: nowrap; right: calc(100% - 44px); text-align: right; transform: translateY(-50%); pointer-events: none; }
+        .tl-axis-line { position: absolute; top: 0; bottom: 0; width: 2px; background: linear-gradient(180deg,#D1FAE5,#10B981,#D1FAE5); left: 48px; border-radius: 1px; pointer-events: none; }
+        .tl-now-line { position: absolute; left: 44px; right: 0; height: 2px; background: #EF4444; z-index: 10; pointer-events: none; }
+        .tl-now-dot { position: absolute; width: 8px; height: 8px; background: #EF4444; border-radius: 50%; left: 44px; transform: translate(-3px,-3px); z-index: 11; pointer-events: none; }
+        .tl-event-dot { position: absolute; width: 10px; height: 10px; background: #10B981; border: 2px solid white; border-radius: 50%; left: 43px; transform: translate(-4px,-5px); z-index: 5; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
+        .tl-event-tag { position: absolute; right: calc(100% - 42px); background: white; border: 1.5px solid #E5E7EB; border-radius: 20px; padding: 3px 8px 3px 6px; font-size: 10px; color: #374151; white-space: nowrap; cursor: pointer; transform: translateY(-50%); z-index: 4; max-width: 38px; overflow: hidden; text-overflow: ellipsis; transition: max-width .2s, box-shadow .15s; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
+        .tl-event-tag:hover { max-width: 140px; box-shadow: 0 2px 8px rgba(0,0,0,.12); z-index: 6; }
+        .tl-card { position: absolute; left: 58px; right: 8px; border-radius: 14px; padding: 9px 11px 8px; overflow: hidden; transition: box-shadow .15s; z-index: 3; }
+        .tl-card:active { box-shadow: 0 4px 14px rgba(0,0,0,.12); }
+        .tl-card-meal { background: #FFFBEB; border: 1.5px solid #F59E0B; }
+        .tl-card-snack { background: #FDF2F8; border: 1.5px solid #EC4899; }
+        .tl-card-exercise { background: #EFF6FF; border: 1.5px solid #3B82F6; }
+        .tl-card-label { font-size: 9px; font-weight: 700; letter-spacing: .4px; padding: 1px 5px; border-radius: 4px; }
+        .tl-label-meal { background: #FEF3C7; color: #B45309; }
+        .tl-label-snack { background: #FCE7F3; color: #9D174D; }
+        .tl-label-exercise { background: #DBEAFE; color: #1E40AF; }
+        .tl-card-title { font-size: 12px; font-weight: 600; color: #111827; }
+        .tl-card-content { font-size: 11px; color: #4B5563; line-height: 1.6; margin-top: 4px; }
+        .tl-card-time { font-size: 10px; color: #9CA3AF; margin-top: 4px; }
+        .tl-btn { font-size: 10px; padding: 2px 7px; border-radius: 20px; font-weight: 500; cursor: pointer; }
+        .tl-btn-adopt { background: rgba(16,185,129,.15); color: #065F46; border: 1px solid rgba(16,185,129,.3); }
+        .tl-btn-dismiss { background: rgba(0,0,0,.05); color: #6B7280; border: 1px solid rgba(0,0,0,.08); }
+        .tl-ai-card { background: white; border: 1.5px solid #E5E7EB; border-radius: 16px; padding: 14px; }
+        .tl-ai-card-meal { border-color: #F59E0B; }
+        .tl-ai-card-snack { border-color: #EC4899; }
+        .tl-ai-card-exercise { border-color: #3B82F6; }
         .risk-bar-track { height: 10px; background: #F3F4F6; border-radius: 5px; overflow: hidden; }
         .risk-bar-fill { height: 100%; border-radius: 5px; transition: width .6s ease; }
         .risk-low { background: linear-gradient(90deg,#10B981,#34D399); }
@@ -810,12 +839,76 @@
 </div>
 
 <!-- ============ 建议页 ============ -->
-<div id="page-advice" class="page">
-    <div class="px-5 pt-12 pb-4">
-        <h2 class="text-2xl font-bold text-gray-900">营养建议</h2>
-        <p class="text-gray-500 text-sm mt-1">AI 基于你的摄入生成的个性化建议</p>
+<div id="page-timeline" class="page" style="background:#F9FAFB;">
+    <!-- 固定顶栏 -->
+    <div class="bg-white px-4 pt-12 pb-3 sticky top-0 z-20 shadow-sm">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-xl font-bold text-gray-900">今日时间轴</h2>
+                <p class="text-xs text-gray-400 mt-0.5" id="tl-date">--</p>
+            </div>
+            <div class="flex items-center gap-1.5">
+                <button onclick="app.tlZoomOut()" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 font-bold text-base leading-none">−</button>
+                <button onclick="app.tlZoomIn()" class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 font-bold text-base leading-none">+</button>
+                <button onclick="app.tlShowAiPanel()" class="h-8 px-3 bg-emerald-50 border border-emerald-200 rounded-full text-emerald-700 text-xs font-medium flex items-center gap-1">
+                    <i class="fas fa-robot text-xs"></i> AI
+                    <span id="tl-ai-badge" class="bg-emerald-500 text-white rounded-full min-w-4 h-4 px-1 text-center hidden" style="font-size:9px;line-height:16px;"></span>
+                </button>
+                <button onclick="app.tlAddCard()" class="h-8 px-3 bg-emerald-500 rounded-full text-white text-xs font-medium"><i class="fas fa-plus text-xs mr-1"></i>添加</button>
+            </div>
+        </div>
     </div>
-    <div id="advice-list" class="pb-8"></div>
+
+    <!-- AI 建议侧面板 -->
+    <div id="tl-ai-panel" class="fixed top-0 right-0 bottom-0 w-80 max-w-full bg-white shadow-2xl z-50 flex flex-col" style="transform:translateX(100%);transition:transform .3s ease;">
+        <div class="flex items-center justify-between px-5 pt-12 pb-4 border-b border-gray-100">
+            <div>
+                <h3 class="font-bold text-gray-900">AI 规划建议</h3>
+                <p class="text-xs text-gray-400 mt-0.5">每次记录后自动生成</p>
+            </div>
+            <button onclick="app.tlCloseAiPanel()" class="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="tl-ai-list" class="flex-1 overflow-y-auto p-4 space-y-3">
+            <p class="text-center text-gray-400 text-sm pt-8">记录饮食或运动后，AI 将自动生成规划建议</p>
+        </div>
+    </div>
+    <div id="tl-ai-overlay" class="fixed inset-0 bg-black/30 z-40 hidden" onclick="app.tlCloseAiPanel()"></div>
+
+    <!-- 时间轴主体 -->
+    <div id="tl-scroll" class="overflow-y-auto" style="height:calc(100vh - 118px);">
+        <div id="tl-container" class="relative" style="margin-bottom:60px;"></div>
+    </div>
+
+    <!-- 添加卡片弹窗 -->
+    <div id="tl-add-modal" class="fixed inset-0 bg-black/50 z-50 items-end" style="display:none;">
+        <div class="w-full bg-white rounded-t-3xl px-6 pt-5 pb-10 space-y-4" style="max-height:90vh;overflow-y:auto;">
+            <div class="w-10 h-1 bg-gray-200 rounded mx-auto mb-1"></div>
+            <h3 class="font-bold text-gray-900 text-lg text-center">添加计划卡片</h3>
+            <div class="grid grid-cols-3 gap-2" id="tl-type-btns">
+                <button onclick="app.tlSelectType('meal')" data-type="meal" class="py-2.5 rounded-xl text-sm font-medium border-2 border-yellow-400 bg-yellow-50 text-yellow-700">🍽️ 大餐</button>
+                <button onclick="app.tlSelectType('snack')" data-type="snack" class="py-2.5 rounded-xl text-sm font-medium border-2 border-transparent bg-gray-100 text-gray-500">🍎 小食</button>
+                <button onclick="app.tlSelectType('exercise')" data-type="exercise" class="py-2.5 rounded-xl text-sm font-medium border-2 border-transparent bg-gray-100 text-gray-500">🏃 运动</button>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div><label class="text-xs text-gray-500 font-medium">开始时间</label><input type="time" id="tl-add-start" class="input-field mt-1 text-sm" value="12:00"></div>
+                <div><label class="text-xs text-gray-500 font-medium">结束时间</label><input type="time" id="tl-add-end" class="input-field mt-1 text-sm" value="13:00"></div>
+            </div>
+            <div><label class="text-xs text-gray-500 font-medium">标题</label><input type="text" id="tl-add-title" class="input-field mt-1 text-sm" placeholder="例如：午餐、晨跑"></div>
+            <div><label class="text-xs text-gray-500 font-medium">内容</label><textarea id="tl-add-content" class="input-field mt-1 text-sm resize-none" rows="3" placeholder="填写计划内容..."></textarea></div>
+            <div class="flex gap-3 pt-2">
+                <button onclick="app.tlCancelAdd()" class="flex-1 btn-secondary">取消</button>
+                <button onclick="app.tlConfirmAdd()" class="flex-1 btn-primary">添加到时间轴</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 事件详情弹窗 -->
+    <div id="tl-detail-modal" class="fixed inset-0 bg-black/50 z-50 items-center justify-center px-6" style="display:none;">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm max-h-screen overflow-y-auto">
+            <div id="tl-detail-content" class="space-y-2"></div>
+            <button onclick="app.tlCloseDetail()" class="btn-secondary w-full mt-4">关闭</button>
+        </div>
+    </div>
 </div>
 
 <!-- ============ 我的 ============ -->
@@ -863,15 +956,15 @@
             <div class="flex items-center gap-3"><div class="w-9 h-9 bg-sky-100 rounded-lg flex items-center justify-center text-sky-600"><i class="fas fa-book-medical"></i></div><span class="text-gray-900 font-medium">参考文献与算法解析</span></div>
             <i class="fas fa-chevron-right text-gray-400"></i>
         </div>
-        <div class="h-px bg-gray-100"></div>
-        <div onclick="app.goTo('report')" class="flex items-center justify-between py-3 cursor-pointer">
-            <div class="flex items-center gap-3"><div class="w-9 h-9 bg-rose-100 rounded-lg flex items-center justify-center text-rose-600"><i class="fas fa-file-medical"></i></div><span class="text-gray-900 font-medium">模拟体检报告</span></div>
-            <i class="fas fa-chevron-right text-gray-400"></i>
+    </div>
+    <div class="grid grid-cols-2 gap-3 mx-5 mt-4">
+        <div onclick="app.goTo('report')" class="hero-btn bg-gradient-to-br from-rose-500 to-rose-600 cursor-pointer" style="padding:18px;">
+            <div class="icon-bg" style="width:44px;height:44px;font-size:20px;"><i class="fas fa-file-medical"></i></div>
+            <div><h3 class="text-base font-bold">模拟体检</h3><p class="text-white/70 text-xs">健康综合评分</p></div>
         </div>
-        <div class="h-px bg-gray-100"></div>
-        <div onclick="app.goTo('risk')" class="flex items-center justify-between py-3 cursor-pointer">
-            <div class="flex items-center gap-3"><div class="w-9 h-9 bg-fuchsia-100 rounded-lg flex items-center justify-center text-fuchsia-600"><i class="fas fa-virus"></i></div><span class="text-gray-900 font-medium">缺乏症风险推算</span></div>
-            <i class="fas fa-chevron-right text-gray-400"></i>
+        <div onclick="app.goTo('risk')" class="hero-btn bg-gradient-to-br from-fuchsia-500 to-fuchsia-600 cursor-pointer" style="padding:18px;">
+            <div class="icon-bg" style="width:44px;height:44px;font-size:20px;"><i class="fas fa-virus"></i></div>
+            <div><h3 class="text-base font-bold">缺乏症风险</h3><p class="text-white/70 text-xs">概率推算</p></div>
         </div>
     </div>
     <!-- AI 接口配置 -->
@@ -921,80 +1014,95 @@
         <h2 class="text-xl font-bold">使用说明书</h2>
     </div>
     <div class="manual-content px-5 pb-12">
-        <div class="tip-box"><strong>欢迎使用食刻 v2.0！</strong><br>本说明书将帮助你快速上手这款 AI 智能营养追踪应用。</div>
-        
+        <div class="tip-box"><strong>欢迎使用食刻 v3.0！</strong><br>本说明书将帮助你快速上手这款 AI 智能营养追踪 + 时间轴规划应用。</div>
+
         <h2>📱 应用概述</h2>
-        <p>「食刻」是一款基于 AI 技术的个人营养摄入管理应用，创新性地引入「摄入-储备-消耗」三维动态平衡模型。通过拍摄食物、记录运动，自动追踪营养摄入与身体有机物储备变化，帮助你科学饮食、精准运动。</p>
-        
+        <p>「食刻」是一款基于 AI 技术的个人营养摄入管理应用，创新性地引入「摄入-储备-消耗」三维动态平衡模型，并配备 <strong>全天候 AI 时间轴规划</strong>功能。通过拍摄食物、记录运动，自动追踪营养摄入与身体有机物储备变化，并由 AI 实时规划剩余时间的饮食和运动计划。</p>
+
         <h2>🚀 快速开始</h2>
         <h3>1. 建立健康档案</h3>
-        <p>首次使用需要填写个人健康信息，包括基本信息、健康状况、体检数据。系统将据此：</p>
+        <p>首次使用填写个人健康信息（基本信息、疾病史、体检数据）。系统将据此计算每日营养目标，并估算体内有机物储备量（糖原、脂肪、蛋白质）。</p>
+        <h3>2. 配置 AI 接口（可选，解锁拍照识别和智能规划）</h3>
+        <p>前往「我的」→「AI 识别接口配置」，填写智谱 GLM API Key（完全免费，注册即得）。配置后可使用：</p>
         <ul>
-            <li>计算你的每日营养目标</li>
-            <li><strong>估算你体内有机物储备量</strong>（糖原、脂肪、蛋白质）</li>
+            <li><strong>拍照识别</strong>：真实摄像头拍摄食物包装或实物，AI 自动识别营养</li>
+            <li><strong>AI 时间轴规划</strong>：每次记录后，AI 自动生成个性化当日饮食/运动计划卡片</li>
         </ul>
-        
-        <h3>2. 四大核心功能入口</h3>
+        <div class="warning-box">API Key 需通过 <strong>HTTPS 页面</strong>或本地 HTTP 服务（<code>python -m http.server</code>）使用，直接双击 HTML 文件打开会因浏览器 CORS 限制导致 AI 功能不可用。</div>
+
+        <h2>📸 拍一拍（真实摄像头识别）</h2>
+        <h3>拍包装模式</h3>
+        <p>点击取景框调起系统相机或相册，对准食品背面<strong>营养成分表</strong>拍摄。AI（GLM-4V-Flash）自动识别产品名称、净含量及每100g各营养素含量，进入校对页确认后记录。</p>
+        <h3>拍实物模式</h3>
+        <p>将食物完整放入画面拍摄，AI 识别食物种类、估算重量和每100g营养成分，返回置信度及备选结果，可在校对页手动切换或调整重量。</p>
+        <div class="tip-box"><strong>小提示：</strong>图片会自动压缩到最大1200px再识别，既节省流量又加快速度。未配置 API Key 时可从食物数据库手动选择。</div>
+
+        <h2>⏱️ 今日时间轴（核心新功能）</h2>
+        <p>底部导航第三项「时间轴」，展示完整的 00:00–24:00 全天视图：</p>
+        <h3>左侧 — 实际记录标签</h3>
         <ul>
-            <li><strong>营养目标</strong>：查看每日应摄入的 27 项营养素标准</li>
-            <li><strong>拍一拍</strong>：拍包装或食物，自动记录营养并增加身体储备</li>
-            <li><strong>身体储备</strong>：实时查看体内糖原、脂肪、蛋白质的储量变化</li>
-            <li><strong>运动消耗</strong>：记录运动，自动计算能量消耗及有机物分解</li>
+            <li>绿色小圆点标记在时间轴左侧，对应每条已记录的饮食或运动</li>
+            <li>悬停标签展示「时间 + 食物/运动名称」</li>
+            <li>点击圆点或标签，弹出该次记录的<strong>营养/运动详情</strong></li>
         </ul>
-        
-        <h2>📸 拍一拍（记录摄入）</h2>
-        <h3>有包装食品</h3>
-        <p>选择「拍包装」模式，拍摄营养成分表和净含量。系统读取数据后，支持分批食用设置，自动按公式换算：营养素 = 每100g含量 × (净含量÷100) × 食用比例。</p>
-        <h3>无包装实物</h3>
-        <p>选择「拍实物」模式，AI 识别食物种类和估算重量。确认后，摄入的营养物质将<strong>增加你的身体储备</strong>。</p>
-        
+        <h3>右侧 — 计划卡片</h3>
+        <p>卡片跨度与时间刻度对应，卡片从「开始时间」延伸到「结束时间」。三种类型：</p>
+        <ul>
+            <li><span style="color:#B45309">🍽️ 大餐（黄色）</span>：正餐计划</li>
+            <li><span style="color:#9D174D">🍎 小食（粉色）</span>：加餐/零食计划</li>
+            <li><span style="color:#1E40AF">🏃 运动（蓝色）</span>：运动计划</li>
+        </ul>
+        <p>卡片格式：</p>
+        <div class="tip-box" style="font-family:monospace;font-size:13px;">类型 标题<br>&nbsp;&nbsp;内容……<br>&nbsp;&nbsp;……<br>&nbsp;&nbsp;开始时间–结束时间</div>
+        <h3>AI 自动生成卡片</h3>
+        <p>每次记录饮食或运动后，系统将当前营养摄入量、体内储备、病史、营养目标等信息全部交给 AI，自动规划今日剩余时间的 2-3 个建议卡片（初始为「待定」状态，显示在时间轴上）。</p>
+        <ul>
+            <li>点击顶栏「AI 🤖」按钮，打开 AI 建议侧面板，查看所有待定建议</li>
+            <li>点击「✓ 采纳」：卡片变为正式计划（蓝底角标消失）</li>
+            <li>点击「✕ 销毁」：移除该建议</li>
+            <li>时间重叠时，新的 AI 建议会自动替换旧建议（已采纳的手动卡片不受影响）</li>
+        </ul>
+        <h3>手动添加卡片</h3>
+        <p>点击顶栏「＋添加」按钮，选择卡片类型、时间段、标题和内容，即可添加自定义计划卡片。若与现有手动卡片时间重叠，旧卡片会被自动移除。</p>
+        <h3>缩放时间轴</h3>
+        <p>顶栏「−」「+」按钮可缩小/放大时间刻度（40px/格 至 160px/格），方便查看全天概览或聚焦某一时段。</p>
+
         <h2>🏃 运动消耗</h2>
-        <p>在首页点击「运动消耗」，选择运动类型并输入时长。系统将自动计算：</p>
-        <ul>
-            <li>总消耗能量（kcal 和 kJ）</li>
-            <li>按消耗优先级分解的有机物量：糖原 → 脂肪 → 蛋白质</li>
-        </ul>
+        <p>在首页点击「运动消耗」，选择运动类型并输入时长。系统自动计算总消耗能量（kcal/kJ）及串行有机物分解量（糖原→脂肪→蛋白质），并触发 AI 时间轴重新规划。</p>
         <div class="tip-box">
             <strong>消耗优先级（生理顺序）：</strong><br>
             ① 0-30分钟：主要消耗糖原（肌糖原+肝糖原）<br>
             ② 30-60分钟：糖原+脂肪混合供能<br>
-            ③ 60分钟以上：脂肪为主，少量蛋白质参与<br>
-            高强度运动优先消耗糖原，低强度长时间运动更多消耗脂肪。
+            ③ 60分钟以上：脂肪为主，少量蛋白质参与
         </div>
-        
-        <h2>📊 消耗柱状图</h2>
-        <p>在「我的」页面点击「消耗柱状图」，查看今日各项运动消耗的能量（kJ）及分解的有机物量（g）的柱状图对比。帮助你了解不同运动对身体的实际影响。</p>
-        
+
         <h2>🏭 身体储备</h2>
-        <p>在首页点击「身体储备」，查看体内有机物储量动态面板：</p>
+        <p>首页「身体储备」查看糖原、脂肪、蛋白质实时储量；「我的」→「身体储备」还展示维生素/无机盐充足度百分比。摄入食物 → 储备增加；记录运动 → 储备减少。</p>
+
+        <h2>📊 图表与数据</h2>
         <ul>
-            <li><strong>糖原</strong>：肝脏约100g + 肌肉约400g，运动优先消耗</li>
-            <li><strong>脂肪</strong>：体脂储存，长时间运动的主要能量来源</li>
-            <li><strong>蛋白质</strong>：肌肉和组织构成，仅在长期能量不足时大量分解</li>
+            <li><strong>摄入详情</strong>（底部导航）：27项营养素进度条，颜色代表达标率</li>
+            <li><strong>消耗柱状图</strong>：今日各项运动能量/有机物消耗对比</li>
+            <li><strong>储备趋势图</strong>：维生素、无机盐充足度变化</li>
         </ul>
-        <p>摄入食物 → 储备增加；记录运动 → 储备减少。实时显示今日净变化。</p>
-        
-        <h2>📈 摄入详情与进度</h2>
-        <p>底部导航「摄入详情」展示今日 27 项营养素的摄入进度条：</p>
+
+        <h2>🏥 模拟体检 & 缺乏症风险</h2>
+        <p>「我的」页面可直接点击大色块按钮进入：</p>
         <ul>
-            <li><span style="color:#3B82F6">● 蓝色</span>：0-50%，摄入不足</li>
-            <li><span style="color:#10B981">● 绿色</span>：50-80%，摄入良好</li>
-            <li><span style="color:#F59E0B">● 橙色</span>：80-100%，接近目标</li>
-            <li><span style="color:#EF4444">● 红色</span>：超过100%，摄入超标</li>
+            <li><strong>模拟体检报告</strong>：综合 BMI、血压、血糖、营养达标率、储备水位生成 0-100 健康综合评分</li>
+            <li><strong>缺乏症风险推算</strong>：基于摄入、储备、个人状态，用科学模型估算各类营养素缺乏风险</li>
         </ul>
-        
-        <h2>💡 AI 饮食建议</h2>
-        <p>每次记录后自动生成结构化建议，包括当前摄入概况、需关注项、下一餐建议、健康小贴士。</p>
-        
+
         <h2>⚠️ 注意事项</h2>
         <ul>
             <li>本应用建议<strong>不能替代专业医疗诊断</strong>，如有疾病请遵医嘱。</li>
             <li>身体储备量为估算值，基于标准生理学模型，个体差异可能存在。</li>
-            <li>运动消耗的能量来源比例为估算模型，实际受运动强度、空腹状态、训练水平等影响。</li>
-            <li>所有数据存储在本地浏览器中，清除数据会导致记录丢失。</li>
-            <li>建议定期（如每3个月或体检后）更新健康档案。</li>
+            <li>AI 识别结果存在误差，营养成分表识别后请在校对页仔细核对数值。</li>
+            <li>AI 时间轴规划为参考建议，实际饮食请结合自身感受灵活调整。</li>
+            <li>所有数据存储在本地浏览器中，清除浏览器数据或重置会导致记录丢失。</li>
+            <li>建议每3个月或体检后更新健康档案，保持营养目标的准确性。</li>
         </ul>
-        
+
         <div class="tip-box mt-6"><strong>祝你使用愉快，科学管理每一口、每一步！</strong></div>
     </div>
 </div>
@@ -1117,7 +1225,7 @@
 <div class="bottom-nav" id="bottom-nav" style="display:none;">
     <div class="nav-item active" onclick="app.goTo('home')" data-page="home"><i class="fas fa-home"></i><span>首页</span></div>
     <div class="nav-item" onclick="app.goTo('detail')" data-page="detail"><i class="fas fa-chart-pie"></i><span>摄入详情</span></div>
-    <div class="nav-item" onclick="app.goTo('advice')" data-page="advice"><i class="fas fa-lightbulb"></i><span>建议</span></div>
+    <div class="nav-item" onclick="app.goTo('timeline')" data-page="timeline"><i class="fas fa-timeline"></i><span>时间轴</span></div>
     <div class="nav-item" onclick="app.goTo('profile')" data-page="profile"><i class="fas fa-user"></i><span>我的</span></div>
 </div>
 
@@ -1392,6 +1500,9 @@ const app = {
         aiSuggestions: [],
         settings: { exerciseDays: 0, glmApiKey: '' },
         capturedImageBase64: null,
+        timelineCards: [],
+        tlZoom: 80,
+        tlAddType: 'meal',
         currentSetup: 1,
         selectedGender: null,
         selectedDiseases: [],
@@ -1431,6 +1542,8 @@ const app = {
             this.data.aiSuggestions = parsed.aiSuggestions || [];
             this.data.settings = parsed.settings || { exerciseDays: 0, glmApiKey: '' };
             if (!this.data.settings.glmApiKey) this.data.settings.glmApiKey = '';
+            this.data.timelineCards = parsed.timelineCards || [];
+            this.data.tlZoom = parsed.tlZoom || 80;
             const today = new Date().toDateString();
             if (parsed.lastDate !== today) {
                 this.data.todayRecords = [];
@@ -1470,6 +1583,8 @@ const app = {
             todayExercises: this.data.todayExercises,
             aiSuggestions: this.data.aiSuggestions,
             settings: this.data.settings,
+            timelineCards: this.data.timelineCards,
+            tlZoom: this.data.tlZoom,
             lastDate: new Date().toDateString()
         }));
     },
@@ -1477,7 +1592,7 @@ const app = {
     goTo(page) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById('page-' + page).classList.add('active');
-        const navPages = ['home', 'detail', 'advice', 'profile'];
+        const navPages = ['home', 'detail', 'timeline', 'profile'];
         const nav = document.getElementById('bottom-nav');
         if (navPages.includes(page)) {
             nav.style.display = 'flex';
@@ -1490,7 +1605,7 @@ const app = {
         if (page === 'home') this.renderHome();
         if (page === 'goals') this.renderGoals();
         if (page === 'detail') this.renderDetail();
-        if (page === 'advice') this.renderAdvice();
+        if (page === 'timeline') this.renderTimeline();
         if (page === 'profile') this.renderProfile();
         if (page === 'reserve') this.renderReserve();
         if (page === 'burn-chart') this.renderBurnChart();
@@ -1934,6 +2049,7 @@ const app = {
             });
         }
         
+        this.generateTimelineCards();
         this.save();
         this.goTo('home');
     },
@@ -2392,52 +2508,349 @@ const app = {
                 }
             });
         }
-        this.generateAdvice();
+        this.generateTimelineCards();
         this.save();
         this.goTo('home');
     },
     
-    generateAdvice() {
-        const intake = this.getTodayIntake();
-        const goals = this.data.goals;
-        const user = this.data.user;
-        const burn = this.getTodayBurn();
-        let sections = [];
-        const kcalPct = Math.round(intake.energy / goals.energy * 100);
-        sections.push(`📊 <strong>当前摄入概况</strong><br>今日已摄入约 ${Math.round(intake.energy)} kcal，运动消耗 ${Math.round(burn.kcal)} kcal，净摄入 ${Math.round(intake.energy - burn.kcal)} kcal。`);
-        let concerns = [];
-        if (intake.sodium > goals.sodium) concerns.push(`钠摄入已超标（${Math.round(intake.sodium)}/${goals.sodium}mg）`);
-        if (intake.fat > goals.fat) concerns.push(`脂肪摄入已超标（${Math.round(intake.fat)}/${goals.fat}g）`);
-        if (intake.protein < goals.protein * 0.3) concerns.push(`蛋白质摄入不足（${Math.round(intake.protein)}/${goals.protein}g）`);
-        if (intake.vc < goals.vc * 0.3) concerns.push('维生素C摄入不足');
-        if (intake.calcium < goals.calcium * 0.3) concerns.push('钙摄入不足');
-        if (burn.kcal > intake.energy * 0.8) concerns.push('今日运动消耗较大，注意补充能量和蛋白质');
-        if (concerns.length === 0) concerns.push('目前各项营养摄入较为均衡，请继续保持！');
-        sections.push(`⚠️ <strong>需关注项</strong><br>${concerns.join('；')}`);
-        let suggestions = [];
-        if (intake.protein < goals.protein * 0.5) suggestions.push('鸡胸肉、鱼类、豆腐或鸡蛋');
-        if (intake.vc < goals.vc * 0.5) suggestions.push('西兰花、猕猴桃、橙子');
-        if (intake.calcium < goals.calcium * 0.5) suggestions.push('牛奶、酸奶');
-        if (intake.fiber < goals.fiber * 0.5) suggestions.push('燕麦、红薯或绿叶蔬菜');
-        if (burn.kcal > intake.energy * 0.5) suggestions.push('香蕉、全麦面包等快速补充能量');
-        if (suggestions.length === 0) suggestions.push('清淡蔬菜沙拉或低糖水果');
-        sections.push(`🍽️ <strong>下一餐建议</strong><br>建议优先补充：${suggestions.join('、')}。`);
-        let tips = [];
-        if (user.diseases.includes('糖尿病')) tips.push('糖尿病患者建议少食多餐');
-        if (user.diseases.includes('高血压')) tips.push('高血压患者烹饪时建议限盐');
-        if (user.exerciseDays >= 3) tips.push('运动日请注意补充优质蛋白');
-        tips.push('饮水建议少量多次');
-        sections.push(`💡 <strong>健康小贴士</strong><br>${tips.join('；')}`);
+    // ===== 时间轴 =====
+
+    // 生成 AI 时间轴规划卡片（每次 saveRecord / saveExercise 后调用）
+    async generateTimelineCards() {
         const now = new Date();
-        this.data.aiSuggestions.unshift({ time: `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`, sections, meal: this.getMealName() });
-        if (this.data.aiSuggestions.length > 10) this.data.aiSuggestions.pop();
+        const intake = this.getTodayIntake();
+        const goals = this.data.goals || {};
+        const user = this.data.user || {};
+        const reserves = this.data.reserves || {};
+        const burn = this.getTodayBurn();
+        const curHH = now.getHours(), curMM = now.getMinutes();
+        const apiKey = this.data.settings.glmApiKey;
+
+        // 构造 AI 卡片的辅助函数（兜底规则）
+        const pushCard = (type, title, content, startH, endH) => {
+            if (startH < curHH) return;
+            const start = `${startH.toString().padStart(2,'0')}:00`;
+            const end   = `${endH.toString().padStart(2,'0')}:00`;
+            // 有重叠的 ai_pending 卡片先移除
+            this.data.timelineCards = this.data.timelineCards.filter(c =>
+                c.status !== 'ai_pending' || !this._tlOverlap(c, {startTime:start, endTime:end})
+            );
+            this.data.timelineCards.push({
+                id: 'ai_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+                type, title, content, startTime: start, endTime: end,
+                status: 'ai_pending', expanded: false
+            });
+        };
+
+        if (apiKey) {
+            // 真实 AI 调用
+            const ctx = [
+                `当前时间 ${curHH.toString().padStart(2,'0')}:${curMM.toString().padStart(2,'0')}`,
+                `用户：${user.age||''}岁 ${user.gender==='male'?'男':'女'} ${user.weight||''}kg ${user.height||''}cm`,
+                `疾病史：${(user.diseases||[]).join('、')||'无'}`,
+                `今日已摄：能量${Math.round(intake.energy)}/${goals.energy||2000}kcal 蛋白${Math.round(intake.protein)}/${goals.protein||60}g 脂肪${Math.round(intake.fat)}g 碳水${Math.round(intake.carbs)}g 钠${Math.round(intake.sodium)}mg`,
+                `今日运动消耗：${Math.round(burn.kcal)}kcal`,
+                `按照AI规划进食后预估：蛋白${Math.round(intake.protein)}/${goals.protein||60}g 钙${Math.round(intake.calcium||0)}/${goals.calcium||800}mg`,
+                `糖原储备：${Math.round(reserves.glycogen||0)}/${Math.round(reserves.glycogenMax||500)}g  脂肪储备：${Math.round(reserves.fat||0)}g`
+            ].join('；');
+            const prompt = `你是专业营养师。根据以下用户情况，为今天剩余时间规划2-3个建议，严格按JSON数组格式返回（只返回数组，不要任何其他文字）：
+[{"type":"meal","title":"晚餐","content":"糙米饭100g+清蒸鱼150g+炒蔬菜200g，补充今日不足的蛋白质和膳食纤维。","startTime":"18:00","endTime":"18:30"},{"type":"exercise","title":"饭后散步","content":"轻松步行20分钟，帮助消化、稳定血糖。","startTime":"19:00","endTime":"19:20"},{"type":"snack","title":"睡前补钙","content":"低脂牛奶200ml，补充今日不足的钙质。","startTime":"21:30","endTime":"21:40"}]
+type限：meal/snack/exercise；时间需在${curHH}点以后；内容言简意赅。
+用户情况：${ctx}`;
+            try {
+                const resp = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+                    body: JSON.stringify({ model: 'glm-4-flash', messages: [{ role: 'user', content: prompt }], max_tokens: 1024 })
+                });
+                if (resp.ok) {
+                    const d = await resp.json();
+                    const text = d.choices?.[0]?.message?.content || '';
+                    const md = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+                    const src = md ? md[1] : text;
+                    const m = src.match(/\[[\s\S]*\]/);
+                    const cards = JSON.parse(m ? m[0] : src);
+                    if (Array.isArray(cards)) {
+                        cards.forEach(c => {
+                            if (!c.type || !c.startTime || !c.endTime || !c.title) return;
+                            const [sh] = c.startTime.split(':').map(Number);
+                            if (sh < curHH) return;
+                            this.data.timelineCards = this.data.timelineCards.filter(ex =>
+                                ex.status !== 'ai_pending' || !this._tlOverlap(ex, c)
+                            );
+                            this.data.timelineCards.push({
+                                id: 'ai_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+                                type: c.type, title: c.title, content: c.content || '',
+                                startTime: c.startTime, endTime: c.endTime,
+                                status: 'ai_pending', expanded: false
+                            });
+                        });
+                        this.save();
+                        this._tlRefreshAiBadge();
+                        return;
+                    }
+                }
+            } catch(e) { console.log('AI timeline error:', e); }
+        }
+        // 兜底规则建议
+        const h = curHH;
+        if (h < 8)  pushCard('meal','早餐','建议7点前吃早餐：全麦面包+鸡蛋+牛奶，补充蛋白质和碳水。',7,8);
+        if (h < 12 && intake.energy < goals.energy * 0.3) pushCard('meal','午餐','建议摄入：米饭150g+优质蛋白（鸡胸肉或鱼）150g+蔬菜200g。',12,13);
+        if (h < 15 && intake.vc < (goals.vc||100) * 0.5) pushCard('snack','下午茶','维生素C不足，建议吃1个猕猴桃或橙子，约50kcal。',15,15);
+        if (h < 18) pushCard('meal','晚餐','建议清淡饮食：粥或蒸菜为主，少油少盐，晚餐七分饱。',18,19);
+        if (burn.kcal > 300 && h < 20) pushCard('snack','运动后补充','运动消耗较大，建议补充：香蕉1根+蛋白粉1勺或低脂牛奶200ml。', h+1, h+1);
+        this.save();
+        this._tlRefreshAiBadge();
     },
-    
-    getMealName() {
-        const h = new Date().getHours();
-        if (h < 10) return '早餐'; if (h < 14) return '午餐'; if (h < 17) return '下午茶'; return '晚餐';
+
+    // 检查两张卡片是否时间重叠
+    _tlOverlap(a, b) {
+        const toMin = t => { const [h,m] = (t||'00:00').split(':').map(Number); return h*60+(m||0); };
+        return toMin(a.endTime) > toMin(b.startTime) && toMin(a.startTime) < toMin(b.endTime);
     },
-    
+
+    // 更新 AI 角标数字
+    _tlRefreshAiBadge() {
+        const n = (this.data.timelineCards || []).filter(c => c.status === 'ai_pending').length;
+        const badge = document.getElementById('tl-ai-badge');
+        if (!badge) return;
+        badge.textContent = n;
+        badge.classList.toggle('hidden', n === 0);
+    },
+
+    // 渲染时间轴主体
+    renderTimeline() {
+        const HH = this.data.tlZoom || 80;
+        const container = document.getElementById('tl-container');
+        if (!container) return;
+        // 更新顶栏日期
+        const d = new Date();
+        const el = document.getElementById('tl-date');
+        if (el) el.textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+
+        const totalH = HH * 24;
+        container.style.height = totalH + 'px';
+
+        let html = '';
+        // 背景格线 + 时间标签
+        for (let h = 0; h < 24; h++) {
+            const y = h * HH;
+            const isMaj = h % 3 === 0;
+            html += `<div class="tl-hour-tick${isMaj?' major':''}" style="top:${y}px;"></div>`;
+            html += `<div class="tl-hour-label" style="top:${y}px;">${h.toString().padStart(2,'0')}:00</div>`;
+            // 半小时格线（浅）
+            if (HH >= 60) {
+                html += `<div class="tl-hour-tick" style="top:${y + HH/2}px;border-color:#F9FAFB;"></div>`;
+                html += `<div class="tl-hour-label" style="top:${y + HH/2}px;color:#D1D5DB;">${h.toString().padStart(2,'0')}:30</div>`;
+            }
+        }
+        // 时间轴竖线
+        html += `<div class="tl-axis-line" style="height:${totalH}px;"></div>`;
+
+        // 当前时间红线
+        const now = new Date();
+        const nowY = (now.getHours() + now.getMinutes()/60) * HH;
+        html += `<div class="tl-now-line" style="top:${nowY}px;"></div><div class="tl-now-dot" style="top:${nowY}px;"></div>`;
+
+        // 实际事件标签（左侧）
+        const events = [
+            ...this.data.todayRecords.map(r => ({ ...r, _kind: 'food' })),
+            ...this.data.todayExercises.map(e => ({ ...e, _kind: 'exercise' }))
+        ].sort((a, b) => a.time.localeCompare(b.time));
+
+        events.forEach((ev, idx) => {
+            const [eh, em] = ev.time.split(':').map(Number);
+            const y = (eh + em/60) * HH;
+            const label = ev._kind === 'exercise'
+                ? `${ev.emoji||'🏃'}${ev.name}`
+                : `${ev.emoji||'🍽️'}${ev.name}`;
+            html += `<div class="tl-event-dot" style="top:${y}px;" onclick="app.tlShowEventDetail(${idx})" title="${ev.time} ${ev.name}"></div>`;
+            html += `<div class="tl-event-tag" style="top:${y}px;" onclick="app.tlShowEventDetail(${idx})">${label}</div>`;
+        });
+
+        // 计划卡片（右侧）
+        const cards = (this.data.timelineCards || []).filter(c => c.status !== 'dismissed');
+        cards.forEach(card => {
+            const [sh, sm] = card.startTime.split(':').map(Number);
+            const [eh2, em2] = card.endTime.split(':').map(Number);
+            const cardTop = (sh + sm/60) * HH;
+            const cardH   = Math.max(48, ((eh2 + em2/60) - (sh + sm/60)) * HH);
+            const typeClass = { meal:'tl-card-meal', snack:'tl-card-snack', exercise:'tl-card-exercise' }[card.type] || 'tl-card-meal';
+            const labelClass = { meal:'tl-label-meal', snack:'tl-label-snack', exercise:'tl-label-exercise' }[card.type] || 'tl-label-meal';
+            const typeName = { meal:'大餐', snack:'小食', exercise:'运动' }[card.type] || card.type;
+            const isAi = card.status === 'ai_pending';
+            const isExpanded = card.expanded;
+            const contentMaxH = isExpanded ? 9999 : Math.max(0, cardH - 52);
+            const contentTrunc = !isExpanded && card.content.length > 60 && cardH < 100;
+            html += `<div class="tl-card ${typeClass}" style="top:${cardTop}px;min-height:${cardH}px;" id="tlc-${card.id}">
+                <div class="flex items-center justify-between gap-1 mb-1">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="tl-card-label ${labelClass}">${typeName}</span>
+                        <span class="tl-card-title truncate">${card.title}</span>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        ${isAi ? `<button class="tl-btn tl-btn-adopt" onclick="app.tlAdoptCard('${card.id}')">采纳</button><button class="tl-btn tl-btn-dismiss" onclick="app.tlDismissCard('${card.id}')">✕</button>` : `<button class="tl-btn tl-btn-dismiss" onclick="app.tlDeleteCard('${card.id}')">✕</button>`}
+                    </div>
+                </div>
+                <div class="tl-card-content" style="max-height:${contentMaxH}px;overflow:hidden;">${card.content}</div>
+                ${contentTrunc ? `<button class="text-xs text-blue-500 mt-1" onclick="app.tlExpandCard('${card.id}')">展开 ▾</button>` : ''}
+                <div class="tl-card-time">${card.startTime} – ${card.endTime}</div>
+            </div>`;
+        });
+
+        container.innerHTML = html;
+        this._tlRefreshAiBadge();
+
+        // 自动滚动到当前时间 -1 小时处
+        const scroll = document.getElementById('tl-scroll');
+        if (scroll) {
+            const target = Math.max(0, nowY - HH);
+            setTimeout(() => { scroll.scrollTop = target; }, 80);
+        }
+    },
+
+    // 缩放
+    tlZoomIn()  { this.data.tlZoom = Math.min(160, (this.data.tlZoom||80) + 20); this.save(); this.renderTimeline(); },
+    tlZoomOut() { this.data.tlZoom = Math.max(40,  (this.data.tlZoom||80) - 20); this.save(); this.renderTimeline(); },
+
+    // 显示 AI 面板
+    tlShowAiPanel() {
+        const panel = document.getElementById('tl-ai-panel');
+        const overlay = document.getElementById('tl-ai-overlay');
+        if (panel) panel.style.transform = 'translateX(0)';
+        if (overlay) overlay.classList.remove('hidden');
+        this._renderAiPanel();
+    },
+    tlCloseAiPanel() {
+        const panel = document.getElementById('tl-ai-panel');
+        const overlay = document.getElementById('tl-ai-overlay');
+        if (panel) panel.style.transform = 'translateX(100%)';
+        if (overlay) overlay.classList.add('hidden');
+    },
+    _renderAiPanel() {
+        const list = document.getElementById('tl-ai-list');
+        if (!list) return;
+        const cards = (this.data.timelineCards || []).filter(c => c.status === 'ai_pending');
+        if (cards.length === 0) {
+            list.innerHTML = '<p class="text-center text-gray-400 text-sm pt-8">暂无 AI 建议<br><span class="text-xs">记录饮食或运动后自动生成</span></p>';
+            return;
+        }
+        const typeMap = { meal:['🍽️','大餐','tl-ai-card-meal'], snack:['🍎','小食','tl-ai-card-snack'], exercise:['🏃','运动','tl-ai-card-exercise'] };
+        list.innerHTML = cards.map(c => {
+            const [icon, label, cls] = typeMap[c.type] || ['📌','计划',''];
+            return `<div class="tl-ai-card ${cls}">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-lg">${icon}</span>
+                        <div><div class="font-semibold text-gray-900 text-sm">${c.title}</div>
+                        <div class="text-xs text-gray-400">${label} · ${c.startTime}–${c.endTime}</div></div>
+                    </div>
+                </div>
+                <p class="text-xs text-gray-600 leading-relaxed mb-3">${c.content}</p>
+                <div class="flex gap-2">
+                    <button onclick="app.tlAdoptCard('${c.id}');app._renderAiPanel();" class="flex-1 py-1.5 rounded-xl text-xs font-medium bg-emerald-500 text-white">✓ 采纳到时间轴</button>
+                    <button onclick="app.tlDismissCard('${c.id}');app._renderAiPanel();" class="flex-1 py-1.5 rounded-xl text-xs font-medium bg-gray-100 text-gray-600">✕ 销毁</button>
+                </div>
+            </div>`;
+        }).join('');
+    },
+
+    // 采纳/销毁/删除
+    tlAdoptCard(id) {
+        const c = (this.data.timelineCards||[]).find(x => x.id === id);
+        if (c) { c.status = 'adopted'; this.save(); this.renderTimeline(); this._tlRefreshAiBadge(); }
+    },
+    tlDismissCard(id) {
+        const c = (this.data.timelineCards||[]).find(x => x.id === id);
+        if (c) { c.status = 'dismissed'; this.save(); this.renderTimeline(); this._tlRefreshAiBadge(); }
+    },
+    tlDeleteCard(id) {
+        this.data.timelineCards = (this.data.timelineCards||[]).filter(x => x.id !== id);
+        this.save(); this.renderTimeline();
+    },
+    tlExpandCard(id) {
+        const c = (this.data.timelineCards||[]).find(x => x.id === id);
+        if (c) { c.expanded = true; this.renderTimeline(); }
+    },
+
+    // 添加卡片弹窗
+    tlAddCard() {
+        this.data.tlAddType = 'meal';
+        const m = document.getElementById('tl-add-modal');
+        if (m) { m.style.display = 'flex'; }
+        // 重置表单
+        const ti = document.getElementById('tl-add-title'); if (ti) ti.value = '';
+        const tc = document.getElementById('tl-add-content'); if (tc) tc.value = '';
+        this.tlSelectType('meal');
+    },
+    tlSelectType(type) {
+        this.data.tlAddType = type;
+        const btns = document.querySelectorAll('#tl-type-btns button');
+        const styles = { meal: 'border-yellow-400 bg-yellow-50 text-yellow-700', snack: 'border-pink-400 bg-pink-50 text-pink-700', exercise: 'border-blue-400 bg-blue-50 text-blue-700' };
+        btns.forEach(btn => {
+            const t = btn.dataset.type;
+            const isActive = t === type;
+            btn.className = `py-2.5 rounded-xl text-sm font-medium border-2 ${isActive ? styles[t] : 'border-transparent bg-gray-100 text-gray-500'}`;
+        });
+    },
+    tlCancelAdd() {
+        const m = document.getElementById('tl-add-modal'); if (m) m.style.display = 'none';
+    },
+    tlConfirmAdd() {
+        const start = document.getElementById('tl-add-start')?.value || '12:00';
+        const end   = document.getElementById('tl-add-end')?.value   || '13:00';
+        const title   = (document.getElementById('tl-add-title')?.value || '').trim();
+        const content = (document.getElementById('tl-add-content')?.value || '').trim();
+        if (!title) { alert('请填写标题'); return; }
+        const newCard = { id: 'manual_' + Date.now(), type: this.data.tlAddType||'meal', title, content, startTime: start, endTime: end, status: 'manual', expanded: false };
+        // 移除有时间重叠的其他 manual 卡片
+        this.data.timelineCards = (this.data.timelineCards||[]).filter(c =>
+            c.status === 'ai_pending' || c.status === 'adopted' || !this._tlOverlap(c, newCard)
+        );
+        this.data.timelineCards.push(newCard);
+        this.save();
+        this.tlCancelAdd();
+        this.renderTimeline();
+    },
+
+    // 事件详情弹窗
+    tlShowEventDetail(idx) {
+        const events = [
+            ...this.data.todayRecords.map(r => ({ ...r, _kind: 'food' })),
+            ...this.data.todayExercises.map(e => ({ ...e, _kind: 'exercise' }))
+        ].sort((a, b) => a.time.localeCompare(b.time));
+        const ev = events[idx]; if (!ev) return;
+        const el = document.getElementById('tl-detail-content');
+        if (!el) return;
+        if (ev._kind === 'exercise') {
+            el.innerHTML = `<div class="text-3xl text-center mb-2">${ev.emoji||'🏃'}</div>
+                <h3 class="font-bold text-gray-900 text-center text-lg">${ev.name}</h3>
+                <p class="text-center text-gray-400 text-sm">${ev.time} · ${ev.duration}分钟</p>
+                <div class="bg-gray-50 rounded-2xl p-4 mt-3 space-y-2 text-sm">
+                    <div class="flex justify-between"><span class="text-gray-500">消耗能量</span><span class="font-medium">${Math.round(ev.kcal)} kcal</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">消耗糖原</span><span class="font-medium">${ev.burnGlycogen}g</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">消耗脂肪</span><span class="font-medium">${ev.burnFat}g</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">水分流失</span><span class="font-medium">${ev.waterLoss}ml</span></div>
+                </div>`;
+        } else {
+            const n = ev.nutrients || {};
+            el.innerHTML = `<div class="text-3xl text-center mb-2">${ev.emoji||'🍽️'}</div>
+                <h3 class="font-bold text-gray-900 text-center text-lg">${ev.name}</h3>
+                <p class="text-center text-gray-400 text-sm">${ev.time} · ${ev.grams}g</p>
+                <div class="bg-gray-50 rounded-2xl p-4 mt-3 space-y-2 text-sm">
+                    <div class="flex justify-between"><span class="text-gray-500">能量</span><span class="font-medium">${Math.round(n.energy||0)} kcal</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">蛋白质</span><span class="font-medium">${Math.round((n.protein||0)*10)/10}g</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">脂肪</span><span class="font-medium">${Math.round((n.fat||0)*10)/10}g</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">碳水化合物</span><span class="font-medium">${Math.round((n.carbs||0)*10)/10}g</span></div>
+                    <div class="flex justify-between"><span class="text-gray-500">钠</span><span class="font-medium">${Math.round(n.sodium||0)}mg</span></div>
+                </div>`;
+        }
+        const modal = document.getElementById('tl-detail-modal'); if (modal) modal.style.display = 'flex';
+    },
+    tlCloseDetail() {
+        const m = document.getElementById('tl-detail-modal'); if (m) m.style.display = 'none';
+    },
+
     // ===== 摄入详情 =====
     renderDetail() {
         const intake = this.getTodayIntake();
@@ -2458,15 +2871,6 @@ const app = {
         }).join('');
     },
     
-    // ===== 建议 =====
-    renderAdvice() {
-        const container = document.getElementById('advice-list');
-        if (this.data.aiSuggestions.length === 0) {
-            container.innerHTML = `<div class="text-center text-gray-400 py-20"><i class="fas fa-lightbulb text-4xl mb-4 opacity-30"></i><p class="text-sm">记录饮食后将在此生成 AI 建议</p></div>`;
-            return;
-        }
-        container.innerHTML = this.data.aiSuggestions.map((s, i) => `<div class="advice-card" style="animation: fadeIn 0.4s ease ${i*0.1}s both;"><div class="flex items-center justify-between mb-3"><span class="bg-emerald-100 text-emerald-700 text-xs font-bold px-3 py-1 rounded-full">${s.meal}建议</span><span class="text-xs text-gray-400">${s.time}</span></div><div class="space-y-3">${s.sections.map(sec => `<div class="text-sm text-gray-700 leading-relaxed">${sec}</div>`).join('')}</div></div>`).join('');
-    },
     
     // ===== 健康综合评分 =====
     // 算法：100 − Σ(BMI/血压/血糖/营养达标率/储备低水位)×权重，截断到 0~100
