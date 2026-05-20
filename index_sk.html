@@ -565,20 +565,26 @@
             </div>
             <div class="w-10"></div>
         </div>
-        <div class="flex-1 flex items-center justify-center px-8">
+        <div class="flex-1 flex items-center justify-center px-6">
             <div class="w-full">
-                <div class="camera-viewfinder mb-6">
+                <!-- 隐藏的文件输入，capture="environment" 调起后置摄像头 -->
+                <input type="file" id="cam-file-input" accept="image/*" capture="environment" class="hidden" onchange="app.onCameraFileSelected(this)">
+                <!-- 取景框：点击触发系统相机 -->
+                <div class="camera-viewfinder mb-4 cursor-pointer" onclick="app.openCameraInput()">
+                    <!-- 未选图时占位 -->
                     <div class="text-center text-white/80" id="camera-placeholder">
-                        <i class="fas fa-camera text-5xl mb-4 opacity-50"></i>
-                        <p class="text-lg font-medium">选择下方食物进行模拟拍摄</p>
-                        <p class="text-sm text-white/50 mt-2"><span id="cam-tip-mode">拍包装</span>模式 · 将调用 <span id="cam-tip-api">OCR 文字识别</span></p>
+                        <i class="fas fa-camera-retro text-5xl mb-4 opacity-60"></i>
+                        <p class="text-lg font-medium">点击拍照 / 从相册选取</p>
+                        <p class="text-sm text-white/50 mt-2">
+                            <span id="cam-tip-mode">拍包装</span>模式 · <span id="cam-tip-api">AI-OCR 识别</span>
+                        </p>
                     </div>
-                    <div id="camera-selected-preview" class="hidden absolute inset-0 flex items-center justify-center">
-                        <div class="text-center">
-                            <div class="text-8xl mb-4" id="preview-emoji">🍎</div>
-                            <div class="bg-black/60 backdrop-blur rounded-xl px-6 py-3 text-white">
-                                <div class="font-bold text-lg" id="preview-name">苹果</div>
-                                <div class="text-sm text-white/70" id="preview-type">有包装食品</div>
+                    <!-- 已选图预览 -->
+                    <div id="camera-selected-preview" class="hidden absolute inset-0">
+                        <img id="preview-img" src="" alt="预览" class="w-full h-full object-cover">
+                        <div class="absolute bottom-3 left-0 right-0 flex justify-center">
+                            <div class="bg-black/60 backdrop-blur-sm rounded-full px-4 py-1.5 text-white text-xs">
+                                <i class="fas fa-rotate-right mr-1"></i><span id="preview-type">点击重新拍摄</span>
                             </div>
                         </div>
                     </div>
@@ -594,15 +600,17 @@
                         <p class="text-xs text-white/70 mt-1" id="scan-sub">调用 AI 引擎</p>
                     </div>
                 </div>
-                <div class="bg-white/10 backdrop-blur rounded-2xl p-4">
-                    <p class="text-white/60 text-xs mb-3 text-center">点击选择模拟拍摄对象</p>
-                    <div class="food-grid" id="camera-food-grid"></div>
+                <!-- 模式提示 -->
+                <div class="bg-white/10 backdrop-blur rounded-2xl p-3 text-center">
+                    <p class="text-white/70 text-xs" id="cam-mode-hint">
+                        <i class="fas fa-circle-info mr-1"></i>拍包装：对准背面营养成分表拍摄 · 拍实物：将食物完整放入画面
+                    </p>
                 </div>
             </div>
         </div>
         <div class="p-6">
             <button onclick="app.confirmCapture()" id="btn-capture" class="w-full bg-white text-black font-bold py-4 rounded-2xl text-lg opacity-50" disabled>
-                <i class="fas fa-camera mr-2"></i>确认拍摄
+                <i class="fas fa-bolt mr-2"></i>开始识别
             </button>
         </div>
     </div>
@@ -864,6 +872,30 @@
         <div onclick="app.goTo('risk')" class="flex items-center justify-between py-3 cursor-pointer">
             <div class="flex items-center gap-3"><div class="w-9 h-9 bg-fuchsia-100 rounded-lg flex items-center justify-center text-fuchsia-600"><i class="fas fa-virus"></i></div><span class="text-gray-900 font-medium">缺乏症风险推算</span></div>
             <i class="fas fa-chevron-right text-gray-400"></i>
+        </div>
+    </div>
+    <!-- AI 接口配置 -->
+    <div class="card mx-5 mt-4">
+        <div class="flex items-center gap-3 mb-3">
+            <div class="w-9 h-9 bg-violet-100 rounded-lg flex items-center justify-center text-violet-600"><i class="fas fa-key"></i></div>
+            <div>
+                <p class="font-medium text-gray-900">AI 识别接口配置</p>
+                <p class="text-xs text-gray-400">智谱 GLM-4V-Flash · 免费视觉模型</p>
+            </div>
+        </div>
+        <div class="space-y-2">
+            <label class="text-xs text-gray-500 font-medium">智谱 API Key
+                <a href="https://open.bigmodel.cn/usercenter/proj-mgmt/apikeys" target="_blank" class="text-violet-500 ml-1">（免费申请 →）</a>
+            </label>
+            <div class="flex gap-2">
+                <input type="password" id="input-glm-key" class="input-field flex-1 text-sm" placeholder="粘贴你的 API Key…" oninput="app.onApiKeyInput()">
+                <button onclick="app.saveApiKey()" id="btn-save-key" class="px-4 py-2 bg-violet-500 text-white rounded-xl text-sm font-medium opacity-50" disabled>保存</button>
+            </div>
+            <p class="text-xs text-gray-400" id="api-key-status">未配置 · 拍照识别功能不可用</p>
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700 leading-relaxed">
+                <i class="fas fa-triangle-exclamation mr-1"></i>
+                需通过 <strong>HTTPS 页面</strong>或 <code class="bg-amber-100 px-1 rounded">python -m http.server</code> 本地服务打开，直接双击 file:// 会触发 CORS 拦截。
+            </div>
         </div>
     </div>
     <div class="card mx-5 mt-4 space-y-1">
@@ -1227,91 +1259,121 @@ const referencesDatabase = {
     'vision_api': { title: 'AI 视觉食物识别 + 营养估算接口', tags:['视觉AI','API'], desc:'POST /api/v1/vision/food-recognize\n请求：{ image: base64|url, userContext: { age, gender, diseases, phases } }\n响应：{ ok, primary: { name, emoji, weight, conf, nutrientsPer100g{...} }, candidates: [ {name,emoji,conf} ], overallConf, fallback: bool, reason }\n当 overallConf < 0.5 时 fallback=true，提示前端切换到数据库手动搜索。userContext 用于：糖尿病避免高糖估算、痛风调整嘌呤等下游建议。', algo:'visionService.recognizeFood(food, ctx)：返回 1 个主结果 + 2~3 个候选 + 置信度；置信度按相似食物的"易混程度"扰动；置信度低自动 fallback。', source:'参考：Food-101 数据集、Recipe1M+、Im2Calories (Meyers et al. ICCV 2015)、Google Cloud Vision、Microsoft Azure Computer Vision。' }
 };
 
-// ==================== OCR / 视觉 AI 服务（模拟实现 + 标准 API 规范） ====================
-// 真实接入：把 mockOcrCall / mockVisionCall 替换成对后端 HTTPS 接口的 fetch 即可。
-// 标准请求/响应见 referencesDatabase.ocr_api / vision_api。
+// ==================== OCR / 视觉 AI 服务（智谱 GLM-4V-Flash 真实接入） ====================
 const aiService = {
-    // 高斯扰动：模拟识别误差
+    // GLM API 端点
+    _endpoint: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+    _model: 'glm-4v-flash',
+
+    _getKey() {
+        return (app && app.data && app.data.settings && app.data.settings.glmApiKey) ||
+               localStorage.getItem('shike_glm_key') || '';
+    },
+
+    // 从 AI 响应文本中提取 JSON（兼容 markdown 代码块）
+    _parseJson(text) {
+        const md = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        const src = md ? md[1] : text;
+        const m = src.match(/\{[\s\S]*\}/);
+        return JSON.parse(m ? m[0] : src);
+    },
+
+    // 调用 GLM-4V-Flash 多模态接口
+    async _callGlm(imageBase64, prompt) {
+        const key = this._getKey();
+        if (!key) throw new Error('未配置 API Key，请到「我的」页面填写智谱 API Key');
+        const resp = await fetch(this._endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+            body: JSON.stringify({
+                model: this._model,
+                messages: [{
+                    role: 'user',
+                    content: [
+                        { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } },
+                        { type: 'text', text: prompt }
+                    ]
+                }],
+                max_tokens: 1024
+            })
+        });
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(`API 错误 ${resp.status}：${err.error?.message || resp.statusText}`);
+        }
+        const data = await resp.json();
+        return data.choices?.[0]?.message?.content || '';
+    },
+
+    // 高斯扰动（保留给 aiPickCandidate 切换候选时使用）
     _noise(val, sigmaPct) {
         if (typeof val !== 'number') return val;
         const u1 = Math.random(), u2 = Math.random();
         const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
-        const noisy = val * (1 + z * sigmaPct);
-        return Math.max(0, +noisy.toFixed(val < 1 ? 2 : 1));
+        return Math.max(0, +(val * (1 + z * sigmaPct)).toFixed(val < 1 ? 2 : 1));
     },
-    _conf(min = 0.6, max = 0.98) { return +(min + Math.random() * (max - min)).toFixed(2); },
-    _delay(ms) { return new Promise(res => setTimeout(res, ms)); },
 
     // 场景A：拍包装 → OCR 营养成分表
+    // imageBase64: 图片 base64 字符串（不含 data:image/... 前缀）
     // 返回标准 schema：{ ok, productName, netWeight, nutrients:[], overallConf, rawText }
-    async recognizePackage(foodKey) {
-        await this._delay(1200 + Math.random() * 700);
-        const food = foodDatabase[foodKey];
-        if (!food) return { ok: false, reason: 'no_data' };
-        // 名称识别：高置信
-        const nameConf = this._conf(0.85, 0.99);
-        // 净含量识别：高置信
-        const netConf = this._conf(0.88, 0.99);
-        // 营养素识别（核心 5 项必识别，其他扰动）
-        const core = ['energy','protein','fat','carbs','sodium'];
-        const extended = ['fiber','calcium','vc','va','iron','potassium','magnesium','zinc','vb1','vb2'];
-        const nutrients = [];
-        core.forEach(k => {
-            const v = food.nutrientsPer100g[k];
-            if (v === undefined) return;
-            nutrients.push({
-                key: k, name: nutrientMeta[k].name, unit: nutrientMeta[k].unit,
-                value: this._noise(v, 0.04), // ±4% 误差
-                conf: this._conf(0.85, 0.98)
-            });
-        });
-        extended.forEach(k => {
-            const v = food.nutrientsPer100g[k];
-            if (v === undefined || v === 0) return;
-            // 30% 概率扩展项识别失败（OCR 模糊）
-            if (Math.random() < 0.3) return;
-            nutrients.push({
-                key: k, name: nutrientMeta[k].name, unit: nutrientMeta[k].unit,
-                value: this._noise(v, 0.12),
-                conf: this._conf(0.55, 0.85)
-            });
-        });
-        const overall = +(nutrients.reduce((s, n) => s + n.conf, 0) / nutrients.length).toFixed(2);
+    async recognizePackage(imageBase64) {
+        const prompt = `请识别图片中食品包装的营养成分表，严格按以下 JSON 格式返回（只返回 JSON 对象，不要任何其他文字）：
+{"productName":"产品名称","netWeight":250,"nutrients":[{"key":"energy","name":"能量","unit":"kcal","value":67},{"key":"protein","name":"蛋白质","unit":"g","value":3.3},{"key":"fat","name":"脂肪","unit":"g","value":3.8},{"key":"carbs","name":"碳水化合物","unit":"g","value":4.8},{"key":"sodium","name":"钠","unit":"mg","value":65}]}
+可用的 key（按需输出，不必全部输出）：energy(kcal), protein(g), fat(g), carbs(g), fiber(g), sodium(mg), calcium(mg), iron(mg), potassium(mg), magnesium(mg), zinc(mg), vc(mg), va(μg), vb1(mg), vb2(mg)
+注意：①能量统一换算为 kcal（1 kcal = 4.184 kJ）；②所有数值为每100g或每100ml含量；③netWeight 为包装净含量(g/ml)，无法识别时填 100。`;
+        const raw = await this._callGlm(imageBase64, prompt);
+        const parsed = this._parseJson(raw);
+        const keyMap = { energy:'能量', protein:'蛋白质', fat:'脂肪', carbs:'碳水化合物', fiber:'膳食纤维',
+            sodium:'钠', calcium:'钙', iron:'铁', potassium:'钾', magnesium:'镁',
+            zinc:'锌', vc:'维生素C', va:'维生素A', vb1:'维生素B1', vb2:'维生素B2' };
+        const unitMap = { energy:'kcal', protein:'g', fat:'g', carbs:'g', fiber:'g',
+            sodium:'mg', calcium:'mg', iron:'mg', potassium:'mg', magnesium:'mg',
+            zinc:'mg', vc:'mg', va:'μg', vb1:'mg', vb2:'mg' };
+        const nutrients = (parsed.nutrients || []).map(n => ({
+            key: n.key,
+            name: keyMap[n.key] || n.name || n.key,
+            unit: unitMap[n.key] || n.unit || '',
+            value: parseFloat(n.value) || 0,
+            conf: 0.92
+        })).filter(n => n.key && n.value >= 0);
         return {
-            ok: true,
-            productName: { value: foodKey, conf: nameConf },
-            netWeight: { value: food.netWeight, unit: 'g', conf: netConf },
+            ok: nutrients.length > 0,
+            productName: { value: parsed.productName || '未知产品', conf: 0.92 },
+            netWeight: { value: parseFloat(parsed.netWeight) || 100, unit: 'g', conf: 0.90 },
             nutrients,
-            overallConf: overall,
-            rawText: `[模拟 OCR raw text] 净含量 ${food.netWeight}g · 营养成分表/100g`
+            overallConf: 0.92,
+            rawText: raw
         };
     },
 
     // 场景B：拍实物 → 视觉 AI 识别 + 营养估算
-    async recognizeFood(foodKey, userContext) {
-        await this._delay(1400 + Math.random() * 800);
-        const food = foodDatabase[foodKey];
-        if (!food) return { ok: false, fallback: true, reason: 'no_match' };
-        const primaryConf = this._conf(0.55, 0.95);
-        // 易混食物作为候选
-        const otherFoods = Object.entries(foodDatabase).filter(([k, v]) => k !== foodKey && v.type === food.type);
-        otherFoods.sort(() => Math.random() - 0.5);
-        const candidates = [
-            { name: foodKey, emoji: food.emoji, conf: primaryConf },
-            ...otherFoods.slice(0, 2).map(([k, v]) => ({ name: k, emoji: v.emoji, conf: this._conf(0.2, primaryConf - 0.05) }))
-        ];
-        // 重量估算误差较大（视觉估重困难）
-        const estWeight = Math.max(20, Math.round(this._noise(food.netWeight, 0.18)));
-        // 各营养素：±8% 扰动
-        const nutrientsPer100g = {};
-        Object.entries(food.nutrientsPer100g).forEach(([k, v]) => { nutrientsPer100g[k] = this._noise(v, 0.08); });
-        const overall = primaryConf;
-        const fallback = primaryConf < 0.5;
+    // imageBase64: 图片 base64 字符串（不含 data:image/... 前缀）
+    // userContext: { age, gender, diseases, phases }
+    async recognizeFood(imageBase64, userContext) {
+        const ctx = userContext || {};
+        const ctxHint = ctx.diseases?.length ? `用户患有${ctx.diseases.join('、')}，请注意相关营养成分的准确性。` : '';
+        const prompt = `请识别图片中的食物，估算重量，严格按以下 JSON 格式返回（只返回 JSON 对象，不要任何其他文字）：
+{"name":"食物名称（中文）","emoji":"🍎","weight":150,"confidence":0.85,"candidates":[{"name":"苹果","emoji":"🍎","confidence":0.85},{"name":"梨","emoji":"🍐","confidence":0.10}],"nutrientsPer100g":{"energy":52,"protein":0.3,"fat":0.2,"carbs":13.8,"fiber":2.4,"sodium":1,"calcium":6,"iron":0.1,"vc":4.6}}
+要求：①name 使用中文常见食物名称；②weight 为估算克数（整数）；③confidence 为 0–1 置信度；④candidates 列出 2–3 个可能的食物（含主结果）；⑤nutrientsPer100g 必须包含 energy(kcal)、protein(g)、fat(g)、carbs(g)，其余按需填写。${ctxHint}`;
+        const raw = await this._callGlm(imageBase64, prompt);
+        const parsed = this._parseJson(raw);
+        const primary = {
+            name: parsed.name || '未知食物',
+            emoji: parsed.emoji || '🍽️',
+            weight: parseInt(parsed.weight) || 100,
+            conf: parseFloat(parsed.confidence) || 0.7,
+            nutrientsPer100g: {}
+        };
+        const np = parsed.nutrientsPer100g || {};
+        Object.entries(np).forEach(([k, v]) => { primary.nutrientsPer100g[k] = parseFloat(v) || 0; });
+        const candidates = (parsed.candidates || [{ name: primary.name, emoji: primary.emoji, confidence: primary.conf }])
+            .map(c => ({ name: c.name, emoji: c.emoji || '🍽️', conf: parseFloat(c.confidence) || 0.5 }));
+        const fallback = primary.conf < 0.4;
         return {
             ok: true,
-            primary: { name: foodKey, emoji: food.emoji, weight: estWeight, conf: primaryConf, nutrientsPer100g },
+            primary,
             candidates,
-            overallConf: overall,
+            overallConf: primary.conf,
             fallback,
             reason: fallback ? 'low_conf' : null,
             userContext
@@ -1328,7 +1390,8 @@ const app = {
         todayRecords: [],
         todayExercises: [],
         aiSuggestions: [],
-        settings: { exerciseDays: 0 },
+        settings: { exerciseDays: 0, glmApiKey: '' },
+        capturedImageBase64: null,
         currentSetup: 1,
         selectedGender: null,
         selectedDiseases: [],
@@ -1366,7 +1429,8 @@ const app = {
             this.data.todayRecords = parsed.todayRecords || [];
             this.data.todayExercises = parsed.todayExercises || [];
             this.data.aiSuggestions = parsed.aiSuggestions || [];
-            this.data.settings = parsed.settings || { exerciseDays: 0 };
+            this.data.settings = parsed.settings || { exerciseDays: 0, glmApiKey: '' };
+            if (!this.data.settings.glmApiKey) this.data.settings.glmApiKey = '';
             const today = new Date().toDateString();
             if (parsed.lastDate !== today) {
                 this.data.todayRecords = [];
@@ -1943,73 +2007,99 @@ const app = {
     },
     
     // ===== 相机 =====
-    renderCameraFoods() {
-        const grid = document.getElementById('camera-food-grid');
-        grid.innerHTML = Object.entries(foodDatabase).map(([name, data]) => `
-            <div class="food-item cursor-pointer" onclick="app.selectFood('${name}')" data-food="${name}">
-                <div class="food-emoji">${data.emoji}</div>
-                <div class="food-name">${name}</div>
-            </div>
-        `).join('');
-    },
-    
+
+    // 切换拍包装 / 拍实物模式
     setCameraMode(mode) {
         this.data.cameraMode = mode;
-        document.getElementById('cam-mode-package').className = mode === 'package' ? 'px-4 py-1.5 rounded-full text-sm font-medium bg-white text-black' : 'px-4 py-1.5 rounded-full text-sm font-medium text-white';
-        document.getElementById('cam-mode-food').className = mode === 'food' ? 'px-4 py-1.5 rounded-full text-sm font-medium bg-white text-black' : 'px-4 py-1.5 rounded-full text-sm font-medium text-white';
-        document.querySelectorAll('.food-item').forEach(el => {
-            const name = el.dataset.food;
-            const data = foodDatabase[name];
-            el.style.display = mode === 'package' ? (data.type === 'packaged' ? 'block' : 'none') : (data.type === 'food' ? 'block' : 'none');
-        });
+        document.getElementById('cam-mode-package').className = mode === 'package'
+            ? 'px-4 py-1.5 rounded-full text-sm font-medium bg-white text-black'
+            : 'px-4 py-1.5 rounded-full text-sm font-medium text-white';
+        document.getElementById('cam-mode-food').className = mode === 'food'
+            ? 'px-4 py-1.5 rounded-full text-sm font-medium bg-white text-black'
+            : 'px-4 py-1.5 rounded-full text-sm font-medium text-white';
         const tipMode = document.getElementById('cam-tip-mode');
-        const tipApi = document.getElementById('cam-tip-api');
+        const tipApi  = document.getElementById('cam-tip-api');
+        const hint    = document.getElementById('cam-mode-hint');
         if (tipMode) tipMode.textContent = mode === 'package' ? '拍包装' : '拍实物';
-        if (tipApi) tipApi.textContent = mode === 'package' ? 'OCR 文字识别' : 'AI 视觉识别 + 营养估算';
-        this.data.selectedFood = null;
+        if (tipApi)  tipApi.textContent  = mode === 'package' ? 'AI-OCR 识别' : 'AI 视觉识别 + 营养估算';
+        if (hint) hint.innerHTML = mode === 'package'
+            ? '<i class="fas fa-circle-info mr-1"></i>对准食品包装<strong>背面的营养成分表</strong>拍摄，确保文字清晰'
+            : '<i class="fas fa-circle-info mr-1"></i>将食物<strong>完整放入画面</strong>，光线充足识别更准确';
+        // 切换模式时清空已选图片
+        this.data.capturedImageBase64 = null;
         this.updateCameraPreview();
     },
-    
-    selectFood(name) {
-        this.data.selectedFood = name;
-        document.querySelectorAll('.food-item').forEach(el => el.classList.toggle('selected', el.dataset.food === name));
-        this.updateCameraPreview();
+
+    // 触发系统相机 / 相册
+    openCameraInput() {
+        const input = document.getElementById('cam-file-input');
+        if (input) { input.value = ''; input.click(); }
     },
-    
+
+    // 用户选完图片后的回调
+    onCameraFileSelected(input) {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const dataUrl = e.target.result;
+            // 压缩到最大 1200px，再转 base64 节省 API 费用
+            const img = new Image();
+            img.onload = () => {
+                const MAX = 1200;
+                const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+                const canvas = document.createElement('canvas');
+                canvas.width  = Math.round(img.width  * scale);
+                canvas.height = Math.round(img.height * scale);
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                const compressed = canvas.toDataURL('image/jpeg', 0.85);
+                this.data.capturedImageBase64 = compressed.replace(/^data:image\/\w+;base64,/, '');
+                // 更新预览
+                document.getElementById('preview-img').src = compressed;
+                document.getElementById('camera-placeholder').classList.add('hidden');
+                document.getElementById('camera-selected-preview').classList.remove('hidden');
+                document.getElementById('preview-type').textContent =
+                    this.data.cameraMode === 'package' ? '包装图已就绪，点击重新拍摄' : '食物图已就绪，点击重新拍摄';
+                const btn = document.getElementById('btn-capture');
+                btn.disabled = false; btn.classList.remove('opacity-50');
+            };
+            img.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+    },
+
+    // 预览区显示状态（无图时复位）
     updateCameraPreview() {
         const btn = document.getElementById('btn-capture');
-        if (!this.data.selectedFood) {
+        if (!this.data.capturedImageBase64) {
             document.getElementById('camera-placeholder').classList.remove('hidden');
             document.getElementById('camera-selected-preview').classList.add('hidden');
             btn.disabled = true; btn.classList.add('opacity-50');
-            return;
         }
-        const data = foodDatabase[this.data.selectedFood];
-        document.getElementById('camera-placeholder').classList.add('hidden');
-        document.getElementById('camera-selected-preview').classList.remove('hidden');
-        document.getElementById('preview-emoji').textContent = data.emoji;
-        document.getElementById('preview-name').textContent = this.data.selectedFood;
-        document.getElementById('preview-type').textContent = data.type === 'packaged' ? '有包装食品（OCR识别）' : '实物（AI识别）';
-        btn.disabled = false; btn.classList.remove('opacity-50');
     },
-    
-    // 拍摄按钮：根据模式分发到 OCR / AI 识别流程
+
+    // 兼容旧调用（food grid 已移除，保留空方法避免 init 报错）
+    renderCameraFoods() {},
+    selectFood(name) {},
+
+    // 开始识别：根据模式分发到 OCR / AI 识别流程
     async confirmCapture() {
-        if (!this.data.selectedFood) return;
+        const b64 = this.data.capturedImageBase64;
+        if (!b64) return;
         const mode = this.data.cameraMode;
-        const overlay = document.getElementById('scan-overlay');
+        const overlay   = document.getElementById('scan-overlay');
         const scanTitle = document.getElementById('scan-title');
-        const scanSub = document.getElementById('scan-sub');
+        const scanSub   = document.getElementById('scan-sub');
         overlay.classList.remove('hidden');
         document.getElementById('btn-capture').disabled = true;
         if (mode === 'package') {
             scanTitle.textContent = '正在识别营养成分表...';
-            scanSub.textContent = '调用 OCR API · 提取每100g营养与净含量';
+            scanSub.textContent   = '调用 GLM-4V-Flash · 提取每100g营养与净含量';
             try {
-                const ocr = await aiService.recognizePackage(this.data.selectedFood);
+                const ocr = await aiService.recognizePackage(b64);
                 overlay.classList.add('hidden');
                 document.getElementById('btn-capture').disabled = false;
-                if (!ocr.ok) { alert('识别失败，请改为手动选择'); this.goTo('manual-pick'); this.renderManualPick(''); return; }
+                if (!ocr.ok) { alert('未识别到营养成分表，请改为手动选择'); this.goTo('manual-pick'); this.renderManualPick(''); return; }
                 this.data.ocrResult = ocr;
                 this.renderOcrReview();
                 this.goTo('ocr-review');
@@ -2020,18 +2110,16 @@ const app = {
             }
         } else {
             scanTitle.textContent = '正在识别食物...';
-            scanSub.textContent = '调用视觉 AI · 估算重量与营养成分';
+            scanSub.textContent   = '调用 GLM-4V-Flash · 估算重量与营养成分';
             try {
-                const u = this.data.user || {};
+                const u   = this.data.user || {};
                 const ctx = { age: u.age, gender: u.gender, diseases: u.diseases, phases: u.phases };
-                const ai = await aiService.recognizeFood(this.data.selectedFood, ctx);
+                const ai  = await aiService.recognizeFood(b64, ctx);
                 overlay.classList.add('hidden');
                 document.getElementById('btn-capture').disabled = false;
                 if (!ai.ok || ai.fallback) {
                     alert('AI 识别置信度过低，已切换到手动选择');
-                    this.goTo('manual-pick');
-                    this.renderManualPick('');
-                    return;
+                    this.goTo('manual-pick'); this.renderManualPick(''); return;
                 }
                 this.data.aiResult = ai;
                 this.renderAiReview();
@@ -2132,15 +2220,18 @@ const app = {
     aiPickCandidate(name) {
         const ai = this.data.aiResult;
         if (!ai) return;
-        const dbItem = foodDatabase[name];
-        if (!dbItem) return;
         const oldP = ai.primary;
-        // 切换主结果：保持当前重量，营养重新生成（带轻微扰动）
-        const nutrientsPer100g = {};
-        Object.entries(dbItem.nutrientsPer100g).forEach(([k, v]) => { nutrientsPer100g[k] = aiService._noise(v, 0.06); });
-        ai.primary = { name, emoji: dbItem.emoji, weight: oldP.weight, conf: (ai.candidates.find(c => c.name === name) || {}).conf || oldP.conf, nutrientsPer100g };
+        const cand = ai.candidates.find(c => c.name === name);
+        if (!cand) return;
+        // 候选来自真实 AI，无本地营养数据库：保留主结果的 nutrientsPer100g，仅更新名称/emoji/置信度
+        const dbItem = foodDatabase[name];
+        const nutrientsPer100g = dbItem
+            ? Object.fromEntries(Object.entries(dbItem.nutrientsPer100g).map(([k, v]) => [k, aiService._noise(v, 0.06)]))
+            : { ...oldP.nutrientsPer100g };
+        const emoji = cand.emoji || (dbItem && dbItem.emoji) || '🍽️';
+        ai.primary = { name, emoji, weight: oldP.weight, conf: cand.conf, nutrientsPer100g };
         document.querySelectorAll('#ai-candidates .cand-chip').forEach(el => el.classList.toggle('selected', el.dataset.name === name));
-        document.getElementById('ai-emoji').textContent = dbItem.emoji;
+        document.getElementById('ai-emoji').textContent = emoji;
         document.getElementById('ai-name').textContent = name;
         this.renderAiNutrientList();
     },
@@ -2659,8 +2750,39 @@ const app = {
         document.getElementById('profile-name').textContent = u.name;
         const gender = u.gender === 'male' ? '男' : '女';
         document.getElementById('profile-info').textContent = `${u.age}岁 · ${gender} · ${u.weight}kg`;
+        // 更新 API Key 输入框和状态文本
+        const keyInput  = document.getElementById('input-glm-key');
+        const statusEl  = document.getElementById('api-key-status');
+        const saveBtn   = document.getElementById('btn-save-key');
+        const savedKey  = this.data.settings.glmApiKey || '';
+        if (keyInput) keyInput.value = savedKey ? '••••••••' + savedKey.slice(-4) : '';
+        if (keyInput) keyInput.placeholder = savedKey ? '已配置（重新输入可覆盖）' : '粘贴你的 API Key…';
+        if (statusEl) {
+            statusEl.textContent = savedKey
+                ? `✅ 已配置 · 尾号 …${savedKey.slice(-4)} · 拍照识别已启用`
+                : '⚠️ 未配置 · 拍照识别功能不可用';
+            statusEl.className = 'text-xs ' + (savedKey ? 'text-emerald-600' : 'text-amber-600');
+        }
+        if (saveBtn) { saveBtn.disabled = true; saveBtn.classList.add('opacity-50'); }
     },
-    
+
+    onApiKeyInput() {
+        const btn = document.getElementById('btn-save-key');
+        const val = (document.getElementById('input-glm-key').value || '').trim();
+        const isNew = val && !val.includes('••');
+        if (btn) { btn.disabled = !isNew; btn.classList.toggle('opacity-50', !isNew); }
+    },
+
+    saveApiKey() {
+        const val = (document.getElementById('input-glm-key').value || '').trim();
+        if (!val || val.includes('••')) return;
+        this.data.settings.glmApiKey = val;
+        this.save();
+        this.renderProfile();
+        const statusEl = document.getElementById('api-key-status');
+        if (statusEl) statusEl.textContent = `✅ 已保存 · 尾号 …${val.slice(-4)}`;
+    },
+
     backFromManual() { this.goTo(this.data.manualReturnTo); },
     
     resetData() {
