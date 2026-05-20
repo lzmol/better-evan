@@ -95,19 +95,28 @@
         .ref-item p { font-size: 12px; color: #6B7280; line-height: 1.6; }
         .ref-item .ref-source { font-size: 11px; color: #2563EB; margin-top: 6px; word-break: break-all; }
         .ref-tag { display: inline-block; background: #EFF6FF; color: #1D4ED8; font-size: 11px; padding: 2px 8px; border-radius: 6px; margin-right: 4px; margin-top: 4px; }
+        /* 启动动画 */
+        #app-splash { position: fixed; inset: 0; z-index: 9999; background: #064E3B; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; font-family: 'Helvetica Neue', Arial, 'Microsoft YaHei', sans-serif; transition: opacity .6s ease; }
+        #app-splash .splash-sub { font-size: 13px; letter-spacing: 2px; opacity: .85; margin-bottom: 6px; font-weight: 500; }
+        #app-splash .splash-main { font-size: 56px; font-weight: 900; letter-spacing: 4px; }
+        #app-splash.fade-out { opacity: 0; pointer-events: none; }
         /* 缺乏症条形概率 */
         .risk-row { display: grid; grid-template-columns: 90px 1fr 50px; align-items: center; gap: 8px; padding: 8px 0; font-size: 13px; }
         /* ===== 时间轴 ===== */
         .tl-hour-tick { position: absolute; left: 0; right: 0; border-top: 1px solid #F3F4F6; pointer-events: none; }
         .tl-hour-tick.major { border-color: #E5E7EB; }
-        .tl-hour-label { position: absolute; font-size: 10px; color: #9CA3AF; line-height: 1; white-space: nowrap; right: calc(100% - 44px); text-align: right; transform: translateY(-50%); pointer-events: none; }
-        .tl-axis-line { position: absolute; top: 0; bottom: 0; width: 2px; background: linear-gradient(180deg,#D1FAE5,#10B981,#D1FAE5); left: 48px; border-radius: 1px; pointer-events: none; }
-        .tl-now-line { position: absolute; left: 44px; right: 0; height: 2px; background: #EF4444; z-index: 10; pointer-events: none; }
-        .tl-now-dot { position: absolute; width: 8px; height: 8px; background: #EF4444; border-radius: 50%; left: 44px; transform: translate(-3px,-3px); z-index: 11; pointer-events: none; }
-        .tl-event-dot { position: absolute; width: 10px; height: 10px; background: #10B981; border: 2px solid white; border-radius: 50%; left: 43px; transform: translate(-4px,-5px); z-index: 5; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.15); }
-        .tl-event-tag { position: absolute; right: calc(100% - 42px); background: white; border: 1.5px solid #E5E7EB; border-radius: 20px; padding: 3px 8px 3px 6px; font-size: 10px; color: #374151; white-space: nowrap; cursor: pointer; transform: translateY(-50%); z-index: 4; max-width: 38px; overflow: hidden; text-overflow: ellipsis; transition: max-width .2s, box-shadow .15s; box-shadow: 0 1px 2px rgba(0,0,0,.06); }
-        .tl-event-tag:hover { max-width: 140px; box-shadow: 0 2px 8px rgba(0,0,0,.12); z-index: 6; }
-        .tl-card { position: absolute; left: 58px; right: 8px; border-radius: 14px; padding: 9px 11px 8px; overflow: hidden; transition: box-shadow .15s; z-index: 3; }
+        .tl-hour-label { position: absolute; font-size: 11px; color: #9CA3AF; font-weight: 500; line-height: 1; white-space: nowrap; left: 8px; transform: translateY(-50%); pointer-events: none; }
+        .tl-axis-line { position: absolute; top: 0; bottom: 0; width: 2px; background: linear-gradient(180deg,#D1FAE5,#10B981,#D1FAE5); left: 158px; border-radius: 1px; pointer-events: none; }
+        .tl-now-line { position: absolute; left: 154px; right: 0; height: 2px; background: #EF4444; z-index: 10; pointer-events: none; }
+        .tl-now-dot { position: absolute; width: 8px; height: 8px; background: #EF4444; border-radius: 50%; left: 158px; transform: translate(-4px,-3px); z-index: 11; pointer-events: none; box-shadow: 0 0 0 3px rgba(239,68,68,.18); }
+        .tl-event-dot { position: absolute; width: 8px; height: 8px; background: #6B7280; border: 2px solid white; border-radius: 50%; left: 158px; transform: translate(-4px,-4px); z-index: 5; pointer-events: none; box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+        .tl-event-tag { position: absolute; right: calc(100% - 152px); left: 50px; background: #F3F4F6; border: 1px solid #E5E7EB; border-radius: 10px; padding: 6px 10px; cursor: pointer; transform: translateY(-50%); z-index: 4; transition: background .15s, border-color .15s, box-shadow .15s; box-shadow: 0 1px 2px rgba(0,0,0,.04); display: flex; align-items: center; gap: 8px; }
+        .tl-event-tag:hover { background: #E5E7EB; border-color: #D1D5DB; box-shadow: 0 2px 8px rgba(0,0,0,.08); z-index: 6; }
+        .tl-event-tag .tag-icon { font-size: 16px; flex-shrink: 0; }
+        .tl-event-tag .tag-body { flex: 1; min-width: 0; line-height: 1.2; }
+        .tl-event-tag .tag-name { font-size: 11px; font-weight: 600; color: #1F2937; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tl-event-tag .tag-meta { font-size: 10px; color: #6B7280; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tl-card { position: absolute; left: 168px; right: 12px; border-radius: 14px; padding: 9px 11px 8px; overflow: hidden; transition: box-shadow .15s; z-index: 3; cursor: pointer; }
         .tl-card:active { box-shadow: 0 4px 14px rgba(0,0,0,.12); }
         .tl-card-meal { background: #FFFBEB; border: 1.5px solid #F59E0B; }
         .tl-card-snack { background: #FDF2F8; border: 1.5px solid #EC4899; }
@@ -164,6 +173,10 @@
     </style>
 </head>
 <body>
+<div id="app-splash">
+    <div class="splash-sub">created by</div>
+    <div class="splash-main">LYS app</div>
+</div>
 
 <!-- ============ 欢迎页 ============ -->
 <div id="page-welcome" class="page active" style="background: linear-gradient(135deg, #065F46 0%, #10B981 50%, #34D399 100%); padding-bottom: 0;">
@@ -360,6 +373,14 @@
                 <div class="icon-bg" style="width:44px;height:44px;font-size:20px;"><i class="fas fa-chart-column"></i></div>
                 <div><h3 class="text-lg font-bold">储量统计</h3><p class="text-white/70 text-xs">每种物质条形图</p></div>
             </div>
+        </div>
+        <div onclick="app.goTo('report')" class="hero-btn bg-gradient-to-br from-pink-500 via-rose-500 to-red-500 cursor-pointer" style="padding: 22px;">
+            <div class="icon-bg" style="width:52px;height:52px;font-size:24px;"><i class="fas fa-file-medical"></i></div>
+            <div class="flex-1">
+                <h3 class="text-xl font-bold">模拟体检报告</h3>
+                <p class="text-white/80 text-xs mt-0.5">健康综合评分 · 病史与营养联合分析</p>
+            </div>
+            <i class="fas fa-chevron-right text-white/70"></i>
         </div>
     </div>
     
@@ -879,26 +900,28 @@
         <div id="tl-container" class="relative" style="margin-bottom:60px;"></div>
     </div>
 
-    <!-- 添加卡片弹窗 -->
+    <!-- 添加 / 编辑卡片弹窗 -->
     <div id="tl-add-modal" class="fixed inset-0 bg-black/50 z-50 items-end" style="display:none;">
         <div class="w-full bg-white rounded-t-3xl px-6 pt-5 pb-10 space-y-4" style="max-height:90vh;overflow-y:auto;">
             <div class="w-10 h-1 bg-gray-200 rounded mx-auto mb-1"></div>
-            <h3 class="font-bold text-gray-900 text-lg text-center">添加计划卡片</h3>
-            <div class="grid grid-cols-3 gap-2" id="tl-type-btns">
-                <button onclick="app.tlSelectType('meal')" data-type="meal" class="py-2.5 rounded-xl text-sm font-medium border-2 border-yellow-400 bg-yellow-50 text-yellow-700">🍽️ 大餐</button>
-                <button onclick="app.tlSelectType('snack')" data-type="snack" class="py-2.5 rounded-xl text-sm font-medium border-2 border-transparent bg-gray-100 text-gray-500">🍎 小食</button>
+            <h3 class="font-bold text-gray-900 text-lg text-center" id="tl-add-modal-title">添加计划卡片</h3>
+            <div class="grid grid-cols-2 gap-2" id="tl-type-btns">
+                <button onclick="app.tlSelectType('snack')" data-type="snack" class="py-2.5 rounded-xl text-sm font-medium border-2 border-pink-400 bg-pink-50 text-pink-700">🍎 小食</button>
                 <button onclick="app.tlSelectType('exercise')" data-type="exercise" class="py-2.5 rounded-xl text-sm font-medium border-2 border-transparent bg-gray-100 text-gray-500">🏃 运动</button>
+                <button onclick="app.tlSelectType('meal')" data-type="meal" id="tl-type-meal-btn" class="py-2.5 rounded-xl text-sm font-medium border-2 border-transparent bg-gray-100 text-gray-500" style="display:none;">🍽️ 大餐</button>
             </div>
+            <p class="text-xs text-gray-400 text-center" id="tl-add-tip">大餐卡片由 AI 自动规划，仅可编辑修改</p>
             <div class="grid grid-cols-2 gap-3">
                 <div><label class="text-xs text-gray-500 font-medium">开始时间</label><input type="time" id="tl-add-start" class="input-field mt-1 text-sm" value="12:00"></div>
                 <div><label class="text-xs text-gray-500 font-medium">结束时间</label><input type="time" id="tl-add-end" class="input-field mt-1 text-sm" value="13:00"></div>
             </div>
-            <div><label class="text-xs text-gray-500 font-medium">标题</label><input type="text" id="tl-add-title" class="input-field mt-1 text-sm" placeholder="例如：午餐、晨跑"></div>
-            <div><label class="text-xs text-gray-500 font-medium">内容</label><textarea id="tl-add-content" class="input-field mt-1 text-sm resize-none" rows="3" placeholder="填写计划内容..."></textarea></div>
+            <div><label class="text-xs text-gray-500 font-medium">标题</label><input type="text" id="tl-add-title" class="input-field mt-1 text-sm" placeholder="例如：晨跑、加餐"></div>
+            <div><label class="text-xs text-gray-500 font-medium">内容</label><textarea id="tl-add-content" class="input-field mt-1 text-sm resize-none" rows="4" placeholder="填写计划内容..."></textarea></div>
             <div class="flex gap-3 pt-2">
                 <button onclick="app.tlCancelAdd()" class="flex-1 btn-secondary">取消</button>
-                <button onclick="app.tlConfirmAdd()" class="flex-1 btn-primary">添加到时间轴</button>
+                <button onclick="app.tlConfirmAdd()" class="flex-1 btn-primary" id="tl-add-confirm-btn">添加到时间轴</button>
             </div>
+            <button onclick="app.tlDeleteEditing()" id="tl-add-delete-btn" class="w-full text-rose-500 text-sm font-medium py-2" style="display:none;">删除此卡片</button>
         </div>
     </div>
 
@@ -956,39 +979,15 @@
             <div class="flex items-center gap-3"><div class="w-9 h-9 bg-sky-100 rounded-lg flex items-center justify-center text-sky-600"><i class="fas fa-book-medical"></i></div><span class="text-gray-900 font-medium">参考文献与算法解析</span></div>
             <i class="fas fa-chevron-right text-gray-400"></i>
         </div>
-    </div>
-    <div class="grid grid-cols-2 gap-3 mx-5 mt-4">
-        <div onclick="app.goTo('report')" class="hero-btn bg-gradient-to-br from-rose-500 to-rose-600 cursor-pointer" style="padding:18px;">
-            <div class="icon-bg" style="width:44px;height:44px;font-size:20px;"><i class="fas fa-file-medical"></i></div>
-            <div><h3 class="text-base font-bold">模拟体检</h3><p class="text-white/70 text-xs">健康综合评分</p></div>
+        <div class="h-px bg-gray-100"></div>
+        <div onclick="app.goTo('report')" class="flex items-center justify-between py-3 cursor-pointer">
+            <div class="flex items-center gap-3"><div class="w-9 h-9 bg-rose-100 rounded-lg flex items-center justify-center text-rose-600"><i class="fas fa-file-medical"></i></div><span class="text-gray-900 font-medium">模拟体检报告</span></div>
+            <i class="fas fa-chevron-right text-gray-400"></i>
         </div>
-        <div onclick="app.goTo('risk')" class="hero-btn bg-gradient-to-br from-fuchsia-500 to-fuchsia-600 cursor-pointer" style="padding:18px;">
-            <div class="icon-bg" style="width:44px;height:44px;font-size:20px;"><i class="fas fa-virus"></i></div>
-            <div><h3 class="text-base font-bold">缺乏症风险</h3><p class="text-white/70 text-xs">概率推算</p></div>
-        </div>
-    </div>
-    <!-- AI 接口配置 -->
-    <div class="card mx-5 mt-4">
-        <div class="flex items-center gap-3 mb-3">
-            <div class="w-9 h-9 bg-violet-100 rounded-lg flex items-center justify-center text-violet-600"><i class="fas fa-key"></i></div>
-            <div>
-                <p class="font-medium text-gray-900">AI 识别接口配置</p>
-                <p class="text-xs text-gray-400">智谱 GLM-4V-Flash · 免费视觉模型</p>
-            </div>
-        </div>
-        <div class="space-y-2">
-            <label class="text-xs text-gray-500 font-medium">智谱 API Key
-                <a href="https://open.bigmodel.cn/usercenter/proj-mgmt/apikeys" target="_blank" class="text-violet-500 ml-1">（免费申请 →）</a>
-            </label>
-            <div class="flex gap-2">
-                <input type="password" id="input-glm-key" class="input-field flex-1 text-sm" placeholder="粘贴你的 API Key…" oninput="app.onApiKeyInput()">
-                <button onclick="app.saveApiKey()" id="btn-save-key" class="px-4 py-2 bg-violet-500 text-white rounded-xl text-sm font-medium opacity-50" disabled>保存</button>
-            </div>
-            <p class="text-xs text-gray-400" id="api-key-status">未配置 · 拍照识别功能不可用</p>
-            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700 leading-relaxed">
-                <i class="fas fa-triangle-exclamation mr-1"></i>
-                需通过 <strong>HTTPS 页面</strong>或 <code class="bg-amber-100 px-1 rounded">python -m http.server</code> 本地服务打开，直接双击 file:// 会触发 CORS 拦截。
-            </div>
+        <div class="h-px bg-gray-100"></div>
+        <div onclick="app.goTo('risk')" class="flex items-center justify-between py-3 cursor-pointer">
+            <div class="flex items-center gap-3"><div class="w-9 h-9 bg-fuchsia-100 rounded-lg flex items-center justify-center text-fuchsia-600"><i class="fas fa-virus"></i></div><span class="text-gray-900 font-medium">缺乏症风险推算</span></div>
+            <i class="fas fa-chevron-right text-gray-400"></i>
         </div>
     </div>
     <div class="card mx-5 mt-4 space-y-1">
@@ -1374,8 +1373,7 @@ const aiService = {
     _model: 'glm-4v-flash',
 
     _getKey() {
-        return (app && app.data && app.data.settings && app.data.settings.glmApiKey) ||
-               localStorage.getItem('shike_glm_key') || '';
+        return 'db0c249be2464d45acdde226c2fea6c6.aqYQJhZnOgT7xcs8';
     },
 
     // 从 AI 响应文本中提取 JSON（兼容 markdown 代码块）
@@ -1572,6 +1570,16 @@ const app = {
         this.renderCameraFoods();
         this.renderDeficiencyOptions();
         this.updateDate();
+        // 进入即兜底一张大餐卡，避免时间轴空白
+        if (this.data.user) { this._tlEnsureMealCard(); this.save(); }
+        // 启动动画：1秒后开始淡出，0.6秒后移除
+        setTimeout(() => {
+            const sp = document.getElementById('app-splash');
+            if (sp) {
+                sp.classList.add('fade-out');
+                setTimeout(() => sp.remove(), 700);
+            }
+        }, 1000);
     },
     
     save() {
@@ -2524,7 +2532,7 @@ const app = {
         const reserves = this.data.reserves || {};
         const burn = this.getTodayBurn();
         const curHH = now.getHours(), curMM = now.getMinutes();
-        const apiKey = this.data.settings.glmApiKey;
+        const apiKey = aiService._getKey();
 
         // 构造 AI 卡片的辅助函数（兜底规则）
         const pushCard = (type, title, content, startH, endH) => {
@@ -2585,6 +2593,7 @@ type限：meal/snack/exercise；时间需在${curHH}点以后；内容言简意�
                                 status: 'ai_pending', expanded: false
                             });
                         });
+                        this._tlEnsureMealCard();
                         this.save();
                         this._tlRefreshAiBadge();
                         return;
@@ -2599,8 +2608,31 @@ type限：meal/snack/exercise；时间需在${curHH}点以后；内容言简意�
         if (h < 15 && intake.vc < (goals.vc||100) * 0.5) pushCard('snack','下午茶','维生素C不足，建议吃1个猕猴桃或橙子，约50kcal。',15,15);
         if (h < 18) pushCard('meal','晚餐','建议清淡饮食：粥或蒸菜为主，少油少盐，晚餐七分饱。',18,19);
         if (burn.kcal > 300 && h < 20) pushCard('snack','运动后补充','运动消耗较大，建议补充：香蕉1根+蛋白粉1勺或低脂牛奶200ml。', h+1, h+1);
+        this._tlEnsureMealCard();
         this.save();
         this._tlRefreshAiBadge();
+    },
+
+    // 兜底：确保今天总有一张未来时段的大餐卡片，避免空白
+    _tlEnsureMealCard() {
+        const now = new Date();
+        const curMin = now.getHours()*60 + now.getMinutes();
+        const toMin = t => { const [h,m] = (t||'00:00').split(':').map(Number); return h*60+(m||0); };
+        const cards = this.data.timelineCards || [];
+        const futureMeal = cards.find(c => c.type === 'meal' && c.status !== 'dismissed' && toMin(c.endTime) >= curMin);
+        if (futureMeal) return;
+        // 选定下一餐时间槽
+        const h = now.getHours();
+        let slot, title, content;
+        if (h < 8)        { slot = ['07:00','08:00']; title = '早餐'; content = '全麦面包2片+鸡蛋1个+牛奶250ml+1份水果，补充优质蛋白和复合碳水。'; }
+        else if (h < 12)  { slot = ['12:00','13:00']; title = '午餐'; content = '糙米饭120g+清蒸鸡胸/鱼150g+绿叶蔬菜200g+少量豆制品，营养均衡。'; }
+        else if (h < 18)  { slot = ['18:00','19:00']; title = '晚餐'; content = '小米粥1碗+清蒸蔬菜200g+鸡蛋1个+少量瘦肉，七分饱、清淡少油盐。'; }
+        else              { slot = [`${(h+1).toString().padStart(2,'0')}:00`, `${(h+2).toString().padStart(2,'0')}:00`]; title = '加餐建议'; content = '若饥饿可少量补充：低脂牛奶或一小份水果，避免高糖高脂。'; }
+        cards.push({
+            id: 'ai_meal_' + Date.now(), type: 'meal', title, content,
+            startTime: slot[0], endTime: slot[1],
+            status: 'ai_pending', expanded: false
+        });
     },
 
     // 检查两张卡片是否时间重叠
@@ -2661,11 +2693,15 @@ type限：meal/snack/exercise；时间需在${curHH}点以后；内容言简意�
         events.forEach((ev, idx) => {
             const [eh, em] = ev.time.split(':').map(Number);
             const y = (eh + em/60) * HH;
-            const label = ev._kind === 'exercise'
-                ? `${ev.emoji||'🏃'}${ev.name}`
-                : `${ev.emoji||'🍽️'}${ev.name}`;
-            html += `<div class="tl-event-dot" style="top:${y}px;" onclick="app.tlShowEventDetail(${idx})" title="${ev.time} ${ev.name}"></div>`;
-            html += `<div class="tl-event-tag" style="top:${y}px;" onclick="app.tlShowEventDetail(${idx})">${label}</div>`;
+            const icon = ev.emoji || (ev._kind === 'exercise' ? '🏃' : '🍽️');
+            const meta = ev._kind === 'exercise'
+                ? `${ev.time} · ${ev.duration}分钟 · ${Math.round(ev.kcal)}kcal`
+                : `${ev.time} · ${ev.grams}g · ${Math.round((ev.nutrients&&ev.nutrients.energy)||0)}kcal`;
+            html += `<div class="tl-event-dot" style="top:${y}px;"></div>`;
+            html += `<div class="tl-event-tag" style="top:${y}px;" onclick="app.tlShowEventDetail(${idx})">
+                <span class="tag-icon">${icon}</span>
+                <div class="tag-body"><div class="tag-name">${ev.name}</div><div class="tag-meta">${meta}</div></div>
+            </div>`;
         });
 
         // 计划卡片（右侧）
@@ -2674,26 +2710,30 @@ type限：meal/snack/exercise；时间需在${curHH}点以后；内容言简意�
             const [sh, sm] = card.startTime.split(':').map(Number);
             const [eh2, em2] = card.endTime.split(':').map(Number);
             const cardTop = (sh + sm/60) * HH;
-            const cardH   = Math.max(48, ((eh2 + em2/60) - (sh + sm/60)) * HH);
+            const minH = card.expanded ? 0 : 48;
+            const cardH = Math.max(minH, ((eh2 + em2/60) - (sh + sm/60)) * HH);
             const typeClass = { meal:'tl-card-meal', snack:'tl-card-snack', exercise:'tl-card-exercise' }[card.type] || 'tl-card-meal';
             const labelClass = { meal:'tl-label-meal', snack:'tl-label-snack', exercise:'tl-label-exercise' }[card.type] || 'tl-label-meal';
             const typeName = { meal:'大餐', snack:'小食', exercise:'运动' }[card.type] || card.type;
             const isAi = card.status === 'ai_pending';
             const isExpanded = card.expanded;
-            const contentMaxH = isExpanded ? 9999 : Math.max(0, cardH - 52);
-            const contentTrunc = !isExpanded && card.content.length > 60 && cardH < 100;
-            html += `<div class="tl-card ${typeClass}" style="top:${cardTop}px;min-height:${cardH}px;" id="tlc-${card.id}">
+            const contentEstHeight = 14 + Math.ceil(card.content.length / 22) * 18;
+            const contentTrunc = !isExpanded && contentEstHeight > Math.max(0, cardH - 52);
+            const cardStyle = isExpanded
+                ? `top:${cardTop}px;height:auto;`
+                : `top:${cardTop}px;height:${cardH}px;`;
+            html += `<div class="tl-card ${typeClass}" style="${cardStyle}" id="tlc-${card.id}" onclick="app.tlEditCard('${card.id}', event)">
                 <div class="flex items-center justify-between gap-1 mb-1">
                     <div class="flex items-center gap-1.5 min-w-0">
                         <span class="tl-card-label ${labelClass}">${typeName}</span>
                         <span class="tl-card-title truncate">${card.title}</span>
                     </div>
-                    <div class="flex items-center gap-1 shrink-0">
-                        ${isAi ? `<button class="tl-btn tl-btn-adopt" onclick="app.tlAdoptCard('${card.id}')">采纳</button><button class="tl-btn tl-btn-dismiss" onclick="app.tlDismissCard('${card.id}')">✕</button>` : `<button class="tl-btn tl-btn-dismiss" onclick="app.tlDeleteCard('${card.id}')">✕</button>`}
+                    <div class="flex items-center gap-1 shrink-0" data-noedit="1">
+                        ${isAi ? `<button class="tl-btn tl-btn-adopt" data-noedit="1" onclick="event.stopPropagation();app.tlAdoptCard('${card.id}')">采纳</button><button class="tl-btn tl-btn-dismiss" data-noedit="1" onclick="event.stopPropagation();app.tlDismissCard('${card.id}')">✕</button>` : `<button class="tl-btn tl-btn-dismiss" data-noedit="1" onclick="event.stopPropagation();app.tlDeleteCard('${card.id}')">✕</button>`}
                     </div>
                 </div>
-                <div class="tl-card-content" style="max-height:${contentMaxH}px;overflow:hidden;">${card.content}</div>
-                ${contentTrunc ? `<button class="text-xs text-blue-500 mt-1" onclick="app.tlExpandCard('${card.id}')">展开 ▾</button>` : ''}
+                <div class="tl-card-content" style="${isExpanded ? '' : `max-height:${Math.max(0,cardH-52)}px;overflow:hidden;`}">${card.content}</div>
+                ${contentTrunc || isExpanded ? `<button class="text-xs text-blue-500 mt-1" data-noedit="1" onclick="event.stopPropagation();app.tlToggleExpand('${card.id}')">${isExpanded?'收起 ▴':'展开 ▾'}</button>` : ''}
                 <div class="tl-card-time">${card.startTime} – ${card.endTime}</div>
             </div>`;
         });
@@ -2768,22 +2808,51 @@ type限：meal/snack/exercise；时间需在${curHH}点以后；内容言简意�
         this.data.timelineCards = (this.data.timelineCards||[]).filter(x => x.id !== id);
         this.save(); this.renderTimeline();
     },
-    tlExpandCard(id) {
+    tlToggleExpand(id) {
         const c = (this.data.timelineCards||[]).find(x => x.id === id);
-        if (c) { c.expanded = true; this.renderTimeline(); }
+        if (c) { c.expanded = !c.expanded; this.renderTimeline(); }
     },
 
     // 添加卡片弹窗
     tlAddCard() {
-        this.data.tlAddType = 'meal';
+        this.data.tlEditingId = null;
+        this.data.tlAddType = 'snack';
         const m = document.getElementById('tl-add-modal');
         if (m) { m.style.display = 'flex'; }
-        // 重置表单
-        const ti = document.getElementById('tl-add-title'); if (ti) ti.value = '';
+        document.getElementById('tl-add-modal-title').textContent = '添加计划卡片';
+        document.getElementById('tl-add-confirm-btn').textContent = '添加到时间轴';
+        document.getElementById('tl-add-tip').style.display = '';
+        document.getElementById('tl-type-meal-btn').style.display = 'none';
+        document.getElementById('tl-add-delete-btn').style.display = 'none';
+        const ti = document.getElementById('tl-add-title');   if (ti) ti.value = '';
         const tc = document.getElementById('tl-add-content'); if (tc) tc.value = '';
-        this.tlSelectType('meal');
+        const ts = document.getElementById('tl-add-start');   if (ts) ts.value = '12:00';
+        const te = document.getElementById('tl-add-end');     if (te) te.value = '13:00';
+        this.tlSelectType('snack');
+    },
+    // 点击已有卡片 → 弹出编辑弹窗（编辑模式下大餐类型可选）
+    tlEditCard(id, ev) {
+        if (ev && ev.target && ev.target.closest('[data-noedit]')) return;
+        const c = (this.data.timelineCards||[]).find(x => x.id === id);
+        if (!c) return;
+        this.data.tlEditingId = id;
+        this.data.tlAddType = c.type;
+        const m = document.getElementById('tl-add-modal');
+        if (m) m.style.display = 'flex';
+        document.getElementById('tl-add-modal-title').textContent = '编辑计划卡片';
+        document.getElementById('tl-add-confirm-btn').textContent = '保存修改';
+        document.getElementById('tl-add-tip').style.display = 'none';
+        document.getElementById('tl-type-meal-btn').style.display = '';
+        document.getElementById('tl-add-delete-btn').style.display = '';
+        document.getElementById('tl-add-title').value   = c.title || '';
+        document.getElementById('tl-add-content').value = c.content || '';
+        document.getElementById('tl-add-start').value   = c.startTime || '12:00';
+        document.getElementById('tl-add-end').value     = c.endTime   || '13:00';
+        this.tlSelectType(c.type);
     },
     tlSelectType(type) {
+        // 添加模式下禁选大餐
+        if (!this.data.tlEditingId && type === 'meal') return;
         this.data.tlAddType = type;
         const btns = document.querySelectorAll('#tl-type-btns button');
         const styles = { meal: 'border-yellow-400 bg-yellow-50 text-yellow-700', snack: 'border-pink-400 bg-pink-50 text-pink-700', exercise: 'border-blue-400 bg-blue-50 text-blue-700' };
@@ -2795,6 +2864,16 @@ type限：meal/snack/exercise；时间需在${curHH}点以后；内容言简意�
     },
     tlCancelAdd() {
         const m = document.getElementById('tl-add-modal'); if (m) m.style.display = 'none';
+        this.data.tlEditingId = null;
+    },
+    tlDeleteEditing() {
+        const id = this.data.tlEditingId;
+        if (!id) return;
+        if (!confirm('确认删除这张卡片吗？')) return;
+        this.data.timelineCards = (this.data.timelineCards||[]).filter(c => c.id !== id);
+        this.save();
+        this.tlCancelAdd();
+        this.renderTimeline();
     },
     tlConfirmAdd() {
         const start = document.getElementById('tl-add-start')?.value || '12:00';
@@ -2802,12 +2881,26 @@ type限：meal/snack/exercise；时间需在${curHH}点以后；内容言简意�
         const title   = (document.getElementById('tl-add-title')?.value || '').trim();
         const content = (document.getElementById('tl-add-content')?.value || '').trim();
         if (!title) { alert('请填写标题'); return; }
-        const newCard = { id: 'manual_' + Date.now(), type: this.data.tlAddType||'meal', title, content, startTime: start, endTime: end, status: 'manual', expanded: false };
-        // 移除有时间重叠的其他 manual 卡片
-        this.data.timelineCards = (this.data.timelineCards||[]).filter(c =>
-            c.status === 'ai_pending' || c.status === 'adopted' || !this._tlOverlap(c, newCard)
-        );
-        this.data.timelineCards.push(newCard);
+        const editingId = this.data.tlEditingId;
+        if (editingId) {
+            // 编辑模式
+            const c = (this.data.timelineCards||[]).find(x => x.id === editingId);
+            if (c) {
+                c.type = this.data.tlAddType || c.type;
+                c.title = title; c.content = content;
+                c.startTime = start; c.endTime = end;
+                if (c.status === 'ai_pending') c.status = 'adopted';
+            }
+        } else {
+            // 新建：禁止大餐
+            const type = this.data.tlAddType === 'meal' ? 'snack' : (this.data.tlAddType || 'snack');
+            const newCard = { id: 'manual_' + Date.now(), type, title, content, startTime: start, endTime: end, status: 'manual', expanded: false };
+            // 移除有时间重叠的同类手动卡片（保留 AI/已采纳卡片）
+            this.data.timelineCards = (this.data.timelineCards||[]).filter(c =>
+                c.status === 'ai_pending' || c.status === 'adopted' || c.type === 'meal' || !this._tlOverlap(c, newCard)
+            );
+            this.data.timelineCards.push(newCard);
+        }
         this.save();
         this.tlCancelAdd();
         this.renderTimeline();
@@ -3154,37 +3247,6 @@ type限：meal/snack/exercise；时间需在${curHH}点以后；内容言简意�
         document.getElementById('profile-name').textContent = u.name;
         const gender = u.gender === 'male' ? '男' : '女';
         document.getElementById('profile-info').textContent = `${u.age}岁 · ${gender} · ${u.weight}kg`;
-        // 更新 API Key 输入框和状态文本
-        const keyInput  = document.getElementById('input-glm-key');
-        const statusEl  = document.getElementById('api-key-status');
-        const saveBtn   = document.getElementById('btn-save-key');
-        const savedKey  = this.data.settings.glmApiKey || '';
-        if (keyInput) keyInput.value = savedKey ? '••••••••' + savedKey.slice(-4) : '';
-        if (keyInput) keyInput.placeholder = savedKey ? '已配置（重新输入可覆盖）' : '粘贴你的 API Key…';
-        if (statusEl) {
-            statusEl.textContent = savedKey
-                ? `✅ 已配置 · 尾号 …${savedKey.slice(-4)} · 拍照识别已启用`
-                : '⚠️ 未配置 · 拍照识别功能不可用';
-            statusEl.className = 'text-xs ' + (savedKey ? 'text-emerald-600' : 'text-amber-600');
-        }
-        if (saveBtn) { saveBtn.disabled = true; saveBtn.classList.add('opacity-50'); }
-    },
-
-    onApiKeyInput() {
-        const btn = document.getElementById('btn-save-key');
-        const val = (document.getElementById('input-glm-key').value || '').trim();
-        const isNew = val && !val.includes('••');
-        if (btn) { btn.disabled = !isNew; btn.classList.toggle('opacity-50', !isNew); }
-    },
-
-    saveApiKey() {
-        const val = (document.getElementById('input-glm-key').value || '').trim();
-        if (!val || val.includes('••')) return;
-        this.data.settings.glmApiKey = val;
-        this.save();
-        this.renderProfile();
-        const statusEl = document.getElementById('api-key-status');
-        if (statusEl) statusEl.textContent = `✅ 已保存 · 尾号 …${val.slice(-4)}`;
     },
 
     backFromManual() { this.goTo(this.data.manualReturnTo); },
